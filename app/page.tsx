@@ -30,6 +30,14 @@ const templates = [
   },
 ];
 
+interface CustomClip {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  type: "image" | "video";
+}
+
 export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
   const [productImages, setProductImages] = useState([
@@ -40,6 +48,9 @@ export default function Home() {
   );
   const [reviewAuthor, setReviewAuthor] = useState("John Doe");
   const [rating, setRating] = useState(5);
+  const [customClips, setCustomClips] = useState<CustomClip[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -49,9 +60,104 @@ export default function Home() {
     }
   };
 
+  const handleCustomClipUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach((file) => {
+        const url = URL.createObjectURL(file);
+        const type = file.type.startsWith("video/") ? "video" : "image";
+        const newClip: CustomClip = {
+          id: `clip-${Date.now()}-${Math.random()}`,
+          url,
+          startFrame: 210,
+          endFrame: 330,
+          type,
+        };
+        setCustomClips((prev) => [...prev, newClip]);
+      });
+    }
+  };
+
+  const updateClipTiming = (
+    id: string,
+    startFrame: number,
+    endFrame: number
+  ) => {
+    setCustomClips((prev) =>
+      prev.map((clip) =>
+        clip.id === id ? { ...clip, startFrame, endFrame } : clip
+      )
+    );
+  };
+
+  const removeClip = (id: string) => {
+    setCustomClips((prev) => prev.filter((clip) => clip.id !== id));
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    setExportProgress(0);
+
+    try {
+      const progressInterval = setInterval(() => {
+        setExportProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 500);
+
+      const response = await fetch("/api/render", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          duration: selectedTemplate.duration,
+          props: {
+            productImages,
+            reviewText,
+            reviewAuthor,
+            rating,
+            customClips,
+          },
+        }),
+      });
+
+      clearInterval(progressInterval);
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `flowcut-video-${Date.now()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setExportProgress(100);
+
+        setTimeout(() => {
+          setIsExporting(false);
+          setExportProgress(0);
+        }, 2000);
+      } else {
+        throw new Error("Export failed");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Failed to export video. Please try again.");
+      setIsExporting(false);
+      setExportProgress(0);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
-      {/* Top gradient background accent */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-72 bg-gradient-to-b from-blue-500/40 via-purple-500/20 to-transparent blur-3xl" />
       <div className="relative z-10">
         <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
@@ -96,9 +202,6 @@ export default function Home() {
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 Auto-animated
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-slate-300">
-                Tailwind + Remotion
-              </span>
             </div>
           </div>
 
@@ -116,14 +219,68 @@ export default function Home() {
                 </div>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-1.5 text-xs font-medium text-white shadow-lg shadow-blue-500/40 transition hover:brightness-110"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-white shadow-lg transition ${
+                    isExporting
+                      ? "bg-slate-700 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-violet-500 shadow-blue-500/40 hover:brightness-110"
+                  }`}
                 >
-                  Render video
+                  {isExporting ? (
+                    <>
+                      <svg
+                        className="h-3 w-3 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Exporting {exportProgress}%
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-3 w-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                      Export Video
+                    </>
+                  )}
                 </button>
               </div>
 
+              {isExporting && (
+                <div className="mb-4 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-1.5 bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-500"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+              )}
+
               <div className="relative mx-auto max-w-[320px] sm:max-w-[360px] md:max-w-[380px]">
-                {/* Phone frame */}
                 <div className="pointer-events-none absolute inset-0 rounded-[2.5rem] border border-slate-700/80 shadow-[0_0_0_1px_rgba(15,23,42,0.8)]" />
                 <div className="pointer-events-none absolute left-1/2 top-2 h-6 w-28 -translate-x-1/2 rounded-full bg-slate-900/80" />
                 <div className="pointer-events-none absolute bottom-2 left-1/2 h-1.5 w-20 -translate-x-1/2 rounded-full bg-slate-800/80" />
@@ -140,6 +297,7 @@ export default function Home() {
                       reviewText,
                       reviewAuthor,
                       rating,
+                      customClips,
                     }}
                     style={{ width: "100%", height: "100%" }}
                     controls
@@ -165,92 +323,224 @@ export default function Home() {
                   1. Choose a template
                 </h3>
                 <p className="mt-1 text-xs text-slate-400">
-                  Pick a layout that fits your product and platform.
+                  Select a layout for your product video.
                 </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  {templates.map((template) => {
-                    const isSelected = selectedTemplate.id === template.id;
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        onClick={() => setSelectedTemplate(template)}
-                        className={`group flex flex-col rounded-xl border px-3 py-3 text-left text-xs transition ${
-                          isSelected
-                            ? "border-blue-500/70 bg-blue-500/10 shadow-[0_0_0_1px_rgba(59,130,246,0.4)]"
-                            : "border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900"
-                        }`}
-                      >
-                        <span className="mb-0.5 flex items-center justify-between">
-                          <span
-                            className={`font-medium ${
-                              isSelected ? "text-slate-50" : "text-slate-100"
-                            }`}
-                          >
-                            {template.name}
-                          </span>
-                          <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] text-slate-400">
-                            {template.duration / 30}s
-                          </span>
-                        </span>
-                        <p className="line-clamp-2 text-[11px] text-slate-400">
-                          {template.description}
-                        </p>
-                      </button>
-                    );
-                  })}
+                <div className="mt-3 space-y-2">
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => setSelectedTemplate(template)}
+                      className={`w-full rounded-xl border px-3 py-2.5 text-left text-xs transition ${
+                        selectedTemplate.id === template.id
+                          ? "border-blue-500 bg-blue-500/10"
+                          : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="font-medium text-slate-100">
+                        {template.name}
+                      </div>
+                      <p className="mt-0.5 text-slate-400">
+                        {template.description}
+                      </p>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Product Images */}
+              {/* Product Images Section */}
               <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
                 <h3 className="text-sm font-medium text-slate-100">
-                  2. Add product images
+                  2. Upload product images
                 </h3>
                 <p className="mt-1 text-xs text-slate-400">
-                  Upload up to a few images. They will automatically animate in
-                  the chosen template.
+                  Add up to 5 product images for the video.
                 </p>
-
-                <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-3 text-xs text-slate-300 transition hover:border-blue-500/60 hover:bg-slate-900/80">
-                  <div>
-                    <span className="font-medium">Upload images</span>
-                    <p className="text-[11px] text-slate-400">
-                      PNG or JPG, high resolution recommended.
-                    </p>
-                  </div>
-                  <div className="rounded-full bg-slate-800 px-3 py-1 text-[11px] text-slate-300">
-                    Select files
-                  </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
-
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  {productImages.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="group relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900"
-                    >
+                <div className="mt-3">
+                  <label className="block">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <div className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 px-3 py-6 text-center hover:border-slate-600">
+                      <div>
+                        <svg
+                          className="mx-auto h-5 w-5 text-slate-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Click to upload images
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                {productImages.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {productImages.map((img, idx) => (
                       <img
+                        key={idx}
                         src={img}
-                        alt={`Product ${idx + 1}`}
-                        className="h-24 w-full object-cover transition duration-300 group-hover:scale-105"
+                        alt="Product"
+                        className="h-20 w-20 rounded-lg object-cover"
                       />
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-                      <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-slate-100">
-                        #{idx + 1}
-                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Clips Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+                <h3 className="text-sm font-medium text-slate-100">
+                  2b. Add custom clips (optional)
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  Layer video or image clips on top of the template.
+                </p>
+                <div className="mt-3">
+                  <label className="block">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      onChange={handleCustomClipUpload}
+                      className="hidden"
+                    />
+                    <div className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 px-3 py-4 text-center hover:border-slate-600">
+                      <div>
+                        <svg
+                          className="mx-auto h-5 w-5 text-slate-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Click to upload clips
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  {customClips.map((clip, idx) => (
+                    <div
+                      key={clip.id}
+                      className="rounded-xl border border-slate-800 bg-slate-950/60 p-3"
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-300">
+                            {clip.type === "video" ? "🎥 Video" : "🖼️ Image"}
+                          </span>
+                          <span className="text-xs font-medium text-slate-100">
+                            Clip #{idx + 1}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeClip(clip.id)}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="mb-1 block text-[11px] text-slate-400">
+                            Start time (seconds)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={selectedTemplate.duration / 30}
+                            step="0.1"
+                            value={(clip.startFrame / 30).toFixed(1)}
+                            onChange={(e) => {
+                              const seconds = parseFloat(e.target.value);
+                              updateClipTiming(
+                                clip.id,
+                                Math.round(seconds * 30),
+                                clip.endFrame
+                              );
+                            }}
+                            className="w-full rounded-lg border border-slate-800 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-0 transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/40"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] text-slate-400">
+                            End time (seconds)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={selectedTemplate.duration / 30}
+                            step="0.1"
+                            value={(clip.endFrame / 30).toFixed(1)}
+                            onChange={(e) => {
+                              const seconds = parseFloat(e.target.value);
+                              updateClipTiming(
+                                clip.id,
+                                clip.startFrame,
+                                Math.round(seconds * 30)
+                              );
+                            }}
+                            className="w-full rounded-lg border border-slate-800 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-0 transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/40"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+                        <span>
+                          Duration:{" "}
+                          {((clip.endFrame - clip.startFrame) / 30).toFixed(1)}s
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Frames: {clip.startFrame}→{clip.endFrame}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 overflow-hidden rounded-lg border border-slate-800">
+                        {clip.type === "image" ? (
+                          <img
+                            src={clip.url}
+                            alt="Clip preview"
+                            className="h-20 w-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={clip.url}
+                            className="h-20 w-full object-cover"
+                            muted
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
-                  {productImages.length === 0 && (
-                    <div className="col-span-3 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4 text-center text-xs text-slate-500">
-                      No images added yet.
+
+                  {customClips.length === 0 && (
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4 text-center text-xs text-slate-500">
+                      No custom clips added. Templates will play normally.
                     </div>
                   )}
                 </div>
