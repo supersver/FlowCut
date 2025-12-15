@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
+import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -14,32 +13,63 @@ export async function POST(request: NextRequest) {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "flowcut-"));
     const outputPath = path.join(tempDir, "output.mp4");
 
-    // Bundle the Remotion project
-    const bundleLocation = await bundle({
-      entryPoint: path.join(process.cwd(), "remotion", "Root.tsx"),
-      webpackOverride: (config) => config,
+    // Run the render script as a separate process (avoids webpack bundling issues)
+    const result = await new Promise<{
+      success: boolean;
+      outputPath?: string;
+      error?: string;
+    }>((resolve) => {
+      const renderProcess = spawn(
+        "node",
+        [path.join(process.cwd(), "scripts", "render.js")],
+        {
+          cwd: process.cwd(),
+          stdio: ["pipe", "pipe", "pipe"],
+        }
+      );
+
+      // Send render parameters via stdin
+      renderProcess.stdin.write(
+        JSON.stringify({
+          templateId,
+          duration,
+          props,
+          width,
+          height,
+          outputPath,
+        })
+      );
+      renderProcess.stdin.end();
+
+      let stdout = "";
+      let stderr = "";
+
+      renderProcess.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      renderProcess.stderr.on("data", (data) => {
+        stderr += data.toString();
+        console.log("[Render]", data.toString());
+      });
+
+      renderProcess.on("close", (code) => {
+        try {
+          const result = JSON.parse(stdout.trim());
+          resolve(result);
+        } catch {
+          resolve({ success: false, error: stderr || "Unknown error" });
+        }
+      });
+
+      renderProcess.on("error", (err) => {
+        resolve({ success: false, error: err.message });
+      });
     });
 
-    // Get composition
-    const composition = await selectComposition({
-      serveUrl: bundleLocation,
-      id: templateId,
-      inputProps: props,
-    });
-
-    // Render video with dynamic dimensions
-    await renderMedia({
-      composition: {
-        ...composition,
-        durationInFrames: duration,
-        width,
-        height,
-      },
-      serveUrl: bundleLocation,
-      codec: "h264",
-      outputLocation: outputPath,
-      inputProps: props,
-    });
+    if (!result.success) {
+      throw new Error(result.error || "Render failed");
+    }
 
     // Read the rendered video
     const videoBuffer = fs.readFileSync(outputPath);
@@ -58,7 +88,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Render error:", error);
     return NextResponse.json(
-      { error: "Failed to render video" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to render video",
+      },
       { status: 500 }
     );
   }
