@@ -6,6 +6,13 @@ import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
 import { Template3 } from "@/remotion/templates/Template3";
 
+const ASPECT_RATIOS = [
+  { id: "9:16", name: "Portrait (9:16)", width: 1080, height: 1920 },
+  { id: "16:9", name: "Landscape (16:9)", width: 1920, height: 1080 },
+  { id: "1:1", name: "Square (1:1)", width: 1080, height: 1080 },
+  { id: "4:5", name: "Instagram (4:5)", width: 1080, height: 1350 },
+];
+
 const templates = [
   {
     id: "template1",
@@ -41,7 +48,7 @@ interface CustomClip {
 export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
   const [productImages, setProductImages] = useState([
-    "https://via.placeholder.com/400x400/FF6B6B/FFFFFF?text=Product+1",
+    "https://placehold.co/400",
   ]);
   const [reviewText, setReviewText] = useState(
     "Amazing product! Highly recommend!"
@@ -49,6 +56,7 @@ export default function Home() {
   const [reviewAuthor, setReviewAuthor] = useState("John Doe");
   const [rating, setRating] = useState(5);
   const [customClips, setCustomClips] = useState<CustomClip[]>([]);
+  const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
@@ -117,6 +125,8 @@ export default function Home() {
         body: JSON.stringify({
           templateId: selectedTemplate.id,
           duration: selectedTemplate.duration,
+          width: aspectRatio.width,
+          height: aspectRatio.height,
           props: {
             productImages,
             reviewText,
@@ -177,7 +187,7 @@ export default function Home() {
             </div>
             <div className="hidden items-center gap-3 text-xs text-slate-400 sm:flex">
               <span className="rounded-full bg-slate-900 px-3 py-1">
-                1080 × 1920 • 30 fps
+                {aspectRatio.width} × {aspectRatio.height} • 30 fps
               </span>
               <span className="rounded-full bg-slate-900 px-3 py-1">
                 Templates: {templates.length}
@@ -280,17 +290,28 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="relative mx-auto max-w-[320px] sm:max-w-[360px] md:max-w-[380px]">
-                <div className="pointer-events-none absolute inset-0 rounded-[2.5rem] border border-slate-700/80 shadow-[0_0_0_1px_rgba(15,23,42,0.8)]" />
-                <div className="pointer-events-none absolute left-1/2 top-2 h-6 w-28 -translate-x-1/2 rounded-full bg-slate-900/80" />
-                <div className="pointer-events-none absolute bottom-2 left-1/2 h-1.5 w-20 -translate-x-1/2 rounded-full bg-slate-800/80" />
-
-                <div className="aspect-[9/16] overflow-hidden rounded-[2.25rem] border border-slate-800 bg-black">
+              <div
+                className="relative mx-auto"
+                style={{
+                  maxWidth:
+                    aspectRatio.id === "16:9"
+                      ? "100%"
+                      : aspectRatio.id === "1:1"
+                      ? "380px"
+                      : "320px",
+                }}
+              >
+                <div
+                  style={{
+                    aspectRatio: `${aspectRatio.width} / ${aspectRatio.height}`,
+                  }}
+                  className="overflow-hidden rounded-2xl border border-slate-800 bg-black"
+                >
                   <Player
                     component={selectedTemplate.component}
                     durationInFrames={selectedTemplate.duration}
-                    compositionWidth={1080}
-                    compositionHeight={1920}
+                    compositionWidth={aspectRatio.width}
+                    compositionHeight={aspectRatio.height}
                     fps={30}
                     inputProps={{
                       productImages,
@@ -312,6 +333,36 @@ export default function Home() {
                 <span className="rounded-full bg-slate-800 px-3 py-1">
                   Rating: {rating}★
                 </span>
+              </div>
+
+              {/* Aspect Ratio Selection */}
+              <div className="rounded-2xl border mt-5 border-slate-800 bg-slate-900/70 p-5">
+                <h3 className="text-sm font-medium text-slate-100">
+                  Select aspect ratio
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  Choose the video dimensions for your platform.
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {ASPECT_RATIOS.map((ratio) => (
+                    <button
+                      key={ratio.id}
+                      onClick={() => setAspectRatio(ratio)}
+                      className={`rounded-xl border px-3 py-2.5 text-left text-xs transition ${
+                        aspectRatio.id === ratio.id
+                          ? "border-violet-500 bg-violet-500/10"
+                          : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="font-medium text-slate-100">
+                        {ratio.id}
+                      </div>
+                      <p className="mt-0.5 text-slate-400">
+                        {ratio.width}×{ratio.height}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 
@@ -388,7 +439,7 @@ export default function Home() {
                 </div>
                 {productImages.length > 0 && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
-                    {productImages.map((img, idx) => (
+                    {productImages?.map((img, idx) => (
                       <img
                         key={idx}
                         src={img}

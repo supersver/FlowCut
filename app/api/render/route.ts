@@ -8,7 +8,7 @@ import os from "os";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { templateId, duration, props } = body;
+    const { templateId, duration, props, width = 1080, height = 1920 } = body;
 
     // Create temporary directory for output
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "flowcut-"));
@@ -27,11 +27,13 @@ export async function POST(request: NextRequest) {
       inputProps: props,
     });
 
-    // Render video
+    // Render video with dynamic dimensions
     await renderMedia({
       composition: {
         ...composition,
         durationInFrames: duration,
+        width,
+        height,
       },
       serveUrl: bundleLocation,
       codec: "h264",
