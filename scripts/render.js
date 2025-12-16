@@ -8,6 +8,89 @@ const {
   ensureBrowser,
 } = require("@remotion/renderer");
 const path = require("path");
+const fs = require("fs");
+const os = require("os");
+
+// Cache configuration
+const CACHE_DIR = path.join(os.tmpdir(), "flowcut-bundle-cache");
+const CACHE_INFO_FILE = path.join(CACHE_DIR, "bundle-info.json");
+
+// Get a hash of source files to detect changes
+function getSourceHash() {
+  const remotionDir = path.join(process.cwd(), "remotion");
+  let hash = "";
+
+  function hashDir(dir) {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        hashDir(fullPath);
+      } else if (
+        entry.name.endsWith(".tsx") ||
+        entry.name.endsWith(".ts") ||
+        entry.name.endsWith(".css")
+      ) {
+        const stat = fs.statSync(fullPath);
+        hash += `${fullPath}:${stat.mtimeMs}|`;
+      }
+    }
+  }
+
+  hashDir(remotionDir);
+  return hash;
+}
+
+// Get cached bundle location if valid
+function getCachedBundle() {
+  try {
+    if (!fs.existsSync(CACHE_INFO_FILE)) {
+      return null;
+    }
+
+    const cacheInfo = JSON.parse(fs.readFileSync(CACHE_INFO_FILE, "utf-8"));
+    const currentHash = getSourceHash();
+
+    // Check if source files have changed
+    if (cacheInfo.sourceHash !== currentHash) {
+      console.error("[Render] Source files changed, cache invalidated");
+      return null;
+    }
+
+    // Check if bundle directory still exists
+    if (!fs.existsSync(cacheInfo.bundleLocation)) {
+      console.error("[Render] Cached bundle directory missing");
+      return null;
+    }
+
+    console.error("[Render] Using cached bundle!");
+    return cacheInfo.bundleLocation;
+  } catch (error) {
+    console.error("[Render] Error reading cache:", error.message);
+    return null;
+  }
+}
+
+// Save bundle location to cache
+function saveBundleCache(bundleLocation) {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+
+    const cacheInfo = {
+      bundleLocation,
+      sourceHash: getSourceHash(),
+      createdAt: Date.now(),
+    };
+
+    fs.writeFileSync(CACHE_INFO_FILE, JSON.stringify(cacheInfo, null, 2));
+    console.error("[Render] Bundle cached for future renders");
+  } catch (error) {
+    console.error("[Render] Error saving cache:", error.message);
+  }
+}
 
 async function render() {
   // Read input from stdin
@@ -73,16 +156,28 @@ async function render() {
     });
     console.error("[Render] Browser is ready!");
 
-    // Bundle the Remotion project
-    console.error("[Render] Bundling Remotion project...");
-    const entryPoint = path.join(process.cwd(), "remotion", "Root.tsx");
-    console.error(`[Render] Entry point: ${entryPoint}`);
+    // Try to get cached bundle first
+    let bundleLocation = getCachedBundle();
 
-    const bundleLocation = await bundle({
-      entryPoint,
-      webpackOverride: (config) => config,
-    });
-    console.error(`[Render] Bundle created at: ${bundleLocation}`);
+    if (!bundleLocation) {
+      // Bundle the Remotion project
+      console.error(
+        "[Render] Bundling Remotion project (this may take a moment)..."
+      );
+      const entryPoint = path.join(process.cwd(), "remotion", "Root.tsx");
+      console.error(`[Render] Entry point: ${entryPoint}`);
+
+      bundleLocation = await bundle({
+        entryPoint,
+        webpackOverride: (config) => config,
+        // Enable caching for faster subsequent builds
+        enableCaching: true,
+      });
+
+      // Save to cache for future renders
+      saveBundleCache(bundleLocation);
+      console.error(`[Render] Bundle created at: ${bundleLocation}`);
+    }
 
     // Get composition
     console.error("[Render] Selecting composition...");

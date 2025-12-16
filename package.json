@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prebundle": "node scripts/prebundle.js",
+    "clear-cache": "node -e \"const fs=require('fs');const os=require('os');const p=require('path').join(os.tmpdir(),'flowcut-bundle-cache');fs.existsSync(p)&&fs.rmSync(p,{recursive:true});console.log('Cache cleared!')\""
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.0",
