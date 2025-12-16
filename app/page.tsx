@@ -1,14 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import dynamic from "next/dynamic";
-import type { PlayerRef } from "@remotion/player";
-
-// Dynamically import Player with SSR disabled to prevent useState errors during static generation
-const Player = dynamic(
-  () => import("@remotion/player").then((mod) => mod.Player),
-  { ssr: false }
-);
+import { Player, PlayerRef } from "@remotion/player";
 import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
 import { Template3 } from "@/remotion/templates/Template3";
