@@ -36,7 +36,8 @@ interface TemplateConfig {
   name: string;
   description: string;
   duration: number;
-  component: React.ComponentType<TemplateProps>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: React.FC<any>;
 }
 
 const templates: TemplateConfig[] = [
@@ -385,7 +386,11 @@ export default function Home() {
                 >
                   <Player
                     ref={playerRef}
-                    component={selectedTemplate.component}
+                    component={
+                      selectedTemplate.component as React.FC<
+                        Record<string, unknown>
+                      >
+                    }
                     durationInFrames={selectedTemplate.duration}
                     compositionWidth={aspectRatio.width}
                     compositionHeight={aspectRatio.height}
