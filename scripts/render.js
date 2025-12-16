@@ -29,7 +29,15 @@ async function render() {
     process.exit(1);
   }
 
-  const { templateId, duration, props, width, height, outputPath } = params;
+  const {
+    templateId,
+    duration,
+    props,
+    width,
+    height,
+    fps = 30,
+    outputPath,
+  } = params;
 
   if (!templateId || !outputPath) {
     console.log(
@@ -44,7 +52,7 @@ async function render() {
   try {
     console.error(`[Render] Starting render for template: ${templateId}`);
     console.error(
-      `[Render] Dimensions: ${width}x${height}, Duration: ${duration} frames`
+      `[Render] Dimensions: ${width}x${height}, Duration: ${duration} frames, FPS: ${fps}`
     );
     console.error(`[Render] Output path: ${outputPath}`);
 
@@ -93,6 +101,7 @@ async function render() {
         durationInFrames: duration,
         width: width || composition.width,
         height: height || composition.height,
+        fps: fps || composition.fps,
       },
       serveUrl: bundleLocation,
       codec: "h264",

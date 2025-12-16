@@ -15,6 +15,12 @@ const ASPECT_RATIOS = [
   { id: "4:5", name: "Instagram (4:5)", width: 1080, height: 1350 },
 ];
 
+const FPS_OPTIONS = [
+  { id: 24, name: "24 fps", description: "Cinematic" },
+  { id: 30, name: "30 fps", description: "Standard" },
+  { id: 60, name: "60 fps", description: "Smooth" },
+];
+
 interface CustomClip {
   id: string;
   url: string;
@@ -92,6 +98,7 @@ export default function Home() {
   const [musicUrl, setMusicUrl] = useState("");
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
+  const [fps, setFps] = useState(FPS_OPTIONS[1]); // Default to 30 fps
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -223,6 +230,7 @@ export default function Home() {
           duration: selectedTemplate.duration,
           width: aspectRatio.width,
           height: aspectRatio.height,
+          fps: fps.id,
           props:
             selectedTemplate.id === "template4"
               ? {
@@ -321,7 +329,7 @@ export default function Home() {
             </div>
             <div className="hidden items-center gap-3 text-xs text-slate-400 sm:flex">
               <span className="rounded-full bg-slate-900 px-3 py-1">
-                {aspectRatio.width} × {aspectRatio.height} • 30 fps
+                {aspectRatio.width} × {aspectRatio.height} • {fps.id} fps
               </span>
               <span className="rounded-full bg-slate-900 px-3 py-1">
                 Templates: {templates.length}
@@ -454,7 +462,7 @@ export default function Home() {
                       compositionWidth={aspectRatio.width}
                       compositionHeight={aspectRatio.height}
                       acknowledgeRemotionLicense
-                      fps={30}
+                      fps={fps.id}
                       inputProps={
                         selectedTemplate.id === "template4"
                           ? {
@@ -500,7 +508,7 @@ export default function Home() {
                 <Timeline
                   currentFrame={currentFrame}
                   durationInFrames={selectedTemplate.duration}
-                  fps={30}
+                  fps={fps.id}
                   customClips={customClips}
                   onSeek={handleSeek}
                   onClipUpdate={updateClipTiming}
@@ -536,6 +544,36 @@ export default function Home() {
                       </div>
                       <p className="mt-0.5 text-slate-400">
                         {ratio.width}×{ratio.height}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* FPS Selection */}
+              <div className="rounded-2xl border mt-5 border-slate-800 bg-slate-900/70 p-5">
+                <h3 className="text-sm font-medium text-slate-100">
+                  Select frame rate
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  Choose the FPS for your video output.
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {FPS_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => setFps(option)}
+                      className={`rounded-xl border px-3 py-2.5 text-center text-xs transition ${
+                        fps.id === option.id
+                          ? "border-violet-500 bg-violet-500/10"
+                          : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="font-medium text-slate-100">
+                        {option.id} fps
+                      </div>
+                      <p className="mt-0.5 text-slate-400">
+                        {option.description}
                       </p>
                     </button>
                   ))}

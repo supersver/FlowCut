@@ -69,7 +69,8 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           recipientName: "Mayank",
           phoneName: "Vivo X200",
-          presenterVideoUrl: "",
+          presenterVideoUrl:
+            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // Placeholder for verification
           customClips: [],
         }}
       />

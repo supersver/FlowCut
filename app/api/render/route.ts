@@ -7,7 +7,14 @@ import os from "os";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { templateId, duration, props, width = 1080, height = 1920 } = body;
+    const {
+      templateId,
+      duration,
+      props,
+      width = 1080,
+      height = 1920,
+      fps = 30,
+    } = body;
 
     // Create temporary directory for output
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "flowcut-"));
@@ -36,6 +43,7 @@ export async function POST(request: NextRequest) {
           props,
           width,
           height,
+          fps,
           outputPath,
         })
       );
