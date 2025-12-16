@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Player, PlayerRef } from "@remotion/player";
+import dynamic from "next/dynamic";
+import { PlayerRef } from "@remotion/player";
 import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
 import { Template3 } from "@/remotion/templates/Template3";
 import { Timeline } from "./components/Timeline";
+
+// Dynamically import Player to prevent SSR issues
+const Player = dynamic(
+  () => import("@remotion/player").then((mod) => mod.Player),
+  { ssr: false }
+);
 
 const ASPECT_RATIOS = [
   { id: "9:16", name: "Portrait (9:16)", width: 1080, height: 1920 },
