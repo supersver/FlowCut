@@ -6,6 +6,7 @@ import {
   Sequence,
   Img,
   Video,
+  Audio,
   spring,
   useVideoConfig,
 } from "remotion";
@@ -24,6 +25,8 @@ interface Template1Props {
   reviewAuthor: string;
   rating: number;
   customClips?: CustomClip[];
+  musicUrl?: string;
+  musicVolume?: number;
 }
 
 export const Template1: React.FC<Template1Props> = ({
@@ -32,6 +35,8 @@ export const Template1: React.FC<Template1Props> = ({
   reviewAuthor,
   rating,
   customClips = [],
+  musicUrl,
+  musicVolume = 0.5,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -137,6 +142,9 @@ export const Template1: React.FC<Template1Props> = ({
 
   return (
     <AbsoluteFill className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Background Music */}
+      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+
       {/* Animated background particles */}
       <div
         style={{

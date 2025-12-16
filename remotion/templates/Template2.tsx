@@ -6,6 +6,7 @@ import {
   Sequence,
   Img,
   Video,
+  Audio,
   spring,
   useVideoConfig,
 } from "remotion";
@@ -24,6 +25,8 @@ interface Template2Props {
   reviewAuthor: string;
   rating: number;
   customClips?: CustomClip[];
+  musicUrl?: string;
+  musicVolume?: number;
 }
 
 export const Template2: React.FC<Template2Props> = ({
@@ -32,6 +35,8 @@ export const Template2: React.FC<Template2Props> = ({
   reviewAuthor,
   rating,
   customClips = [],
+  musicUrl,
+  musicVolume = 0.5,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -138,6 +143,9 @@ export const Template2: React.FC<Template2Props> = ({
         background: `linear-gradient(${gradientRotate}deg, #059669, #0D9488, #0891B2)`,
       }}
     >
+      {/* Background Music */}
+      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+
       {/* Decorative circles */}
       <div
         style={{

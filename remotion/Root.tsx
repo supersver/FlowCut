@@ -69,7 +69,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           recipientName: "Mayank",
           phoneName: "Vivo X200",
-          presenterImageUrl: "",
+          presenterVideoUrl: "",
           customClips: [],
         }}
       />

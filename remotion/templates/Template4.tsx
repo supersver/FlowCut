@@ -6,6 +6,7 @@ import {
   Sequence,
   Img,
   Video,
+  Audio,
   spring,
   useVideoConfig,
 } from "remotion";
@@ -21,8 +22,10 @@ interface CustomClip {
 interface Template4Props {
   recipientName: string;
   phoneName: string;
-  presenterImageUrl?: string;
+  presenterVideoUrl?: string;
   customClips?: CustomClip[];
+  musicUrl?: string;
+  musicVolume?: number;
 }
 
 // ============================================
@@ -31,16 +34,16 @@ interface Template4Props {
 
 // Placeholder Presenter Component
 const PresenterPlaceholder: React.FC<{
-  imageUrl?: string;
+  videoUrl?: string;
   opacity?: number;
   scale?: number;
-}> = ({ imageUrl, opacity = 1, scale = 1 }) => {
+}> = ({ videoUrl, opacity = 1, scale = 1 }) => {
   const frame = useCurrentFrame();
 
-  // Subtle breathing animation
+  // Subtle breathing animation (only for placeholder)
   const breathe = interpolate(Math.sin(frame * 0.05), [-1, 1], [0.98, 1.02]);
 
-  if (imageUrl) {
+  if (videoUrl) {
     return (
       <div
         style={{
@@ -50,17 +53,20 @@ const PresenterPlaceholder: React.FC<{
           alignItems: "center",
           justifyContent: "center",
           opacity,
-          transform: `scale(${scale * breathe})`,
+          transform: `scale(${scale})`,
+          overflow: "hidden",
         }}
       >
-        <Img
-          src={imageUrl}
+        <Video
+          src={videoUrl}
           style={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
             objectPosition: "center top",
           }}
+          volume={0}
+          loop
         />
       </div>
     );
@@ -435,8 +441,10 @@ const WhatsAppCTA: React.FC<{ replyText: string; opacity: number }> = ({
 export const Template4: React.FC<Template4Props> = ({
   recipientName,
   phoneName,
-  presenterImageUrl,
+  presenterVideoUrl,
   customClips = [],
+  musicUrl,
+  musicVolume = 0.5,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -561,6 +569,9 @@ export const Template4: React.FC<Template4Props> = ({
         }deg, #0a0a15 0%, #1a1a2e 50%, #0f0f1a 100%)`,
       }}
     >
+      {/* Background Music */}
+      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+
       {/* Subtle animated gradient overlay */}
       <div
         style={{
@@ -593,7 +604,7 @@ export const Template4: React.FC<Template4Props> = ({
           }}
         >
           <PresenterPlaceholder
-            imageUrl={presenterImageUrl}
+            videoUrl={presenterVideoUrl}
             opacity={1}
             scale={1}
           />
@@ -761,7 +772,7 @@ export const Template4: React.FC<Template4Props> = ({
           }}
         >
           <PresenterPlaceholder
-            imageUrl={presenterImageUrl}
+            videoUrl={presenterVideoUrl}
             opacity={1}
             scale={1.2}
           />
@@ -784,7 +795,7 @@ export const Template4: React.FC<Template4Props> = ({
           }}
         >
           <PresenterPlaceholder
-            imageUrl={presenterImageUrl}
+            videoUrl={presenterVideoUrl}
             opacity={0.8}
             scale={1}
           />
@@ -820,7 +831,7 @@ export const Template4: React.FC<Template4Props> = ({
           }}
         >
           <PresenterPlaceholder
-            imageUrl={presenterImageUrl}
+            videoUrl={presenterVideoUrl}
             opacity={1}
             scale={1}
           />

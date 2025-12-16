@@ -6,6 +6,7 @@ import {
   Sequence,
   Img,
   Video,
+  Audio,
   spring,
   useVideoConfig,
 } from "remotion";
@@ -24,6 +25,8 @@ interface Template3Props {
   reviewAuthor: string;
   rating: number;
   customClips?: CustomClip[];
+  musicUrl?: string;
+  musicVolume?: number;
 }
 
 export const Template3: React.FC<Template3Props> = ({
@@ -32,6 +35,8 @@ export const Template3: React.FC<Template3Props> = ({
   reviewAuthor,
   rating,
   customClips = [],
+  musicUrl,
+  musicVolume = 0.5,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -150,6 +155,9 @@ export const Template3: React.FC<Template3Props> = ({
         }deg, #EC4899, #F43F5E, #EF4444)`,
       }}
     >
+      {/* Background Music */}
+      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+
       {/* Decorative elements */}
       <div
         style={{

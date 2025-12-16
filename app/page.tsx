@@ -94,7 +94,10 @@ export default function Home() {
   // Template4 specific props
   const [recipientName, setRecipientName] = useState("Mayank");
   const [phoneName, setPhoneName] = useState("Vivo X200");
-  const [presenterImageUrl, setPresenterImageUrl] = useState("");
+  const [presenterVideoUrl, setPresenterVideoUrl] = useState("");
+  // Music settings
+  const [musicUrl, setMusicUrl] = useState("");
+  const [musicVolume, setMusicVolume] = useState(0.5);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -140,6 +143,24 @@ export default function Home() {
       );
       const base64Urls = await Promise.all(base64Promises);
       setProductImages(base64Urls);
+    }
+  };
+
+  const handlePresenterVideoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = await fileToBase64(file);
+      setPresenterVideoUrl(url);
+    }
+  };
+
+  const handleMusicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = await fileToBase64(file);
+      setMusicUrl(url);
     }
   };
 
@@ -202,8 +223,10 @@ export default function Home() {
               ? {
                   recipientName,
                   phoneName,
-                  presenterImageUrl,
+                  presenterVideoUrl,
                   customClips,
+                  musicUrl,
+                  musicVolume,
                 }
               : {
                   productImages,
@@ -211,6 +234,8 @@ export default function Home() {
                   reviewAuthor,
                   rating,
                   customClips,
+                  musicUrl,
+                  musicVolume,
                 },
         }),
       });
@@ -429,8 +454,10 @@ export default function Home() {
                         ? {
                             recipientName,
                             phoneName,
-                            presenterImageUrl,
+                            presenterVideoUrl,
                             customClips,
+                            musicUrl,
+                            musicVolume,
                           }
                         : {
                             productImages,
@@ -438,6 +465,8 @@ export default function Home() {
                             reviewAuthor,
                             rating,
                             customClips,
+                            musicUrl,
+                            musicVolume,
                           }
                     }
                     style={{ width: "100%", height: "100%" }}
@@ -464,6 +493,11 @@ export default function Home() {
                   customClips={customClips}
                   onSeek={handleSeek}
                   onClipUpdate={updateClipTiming}
+                  musicUrl={musicUrl}
+                  musicVolume={musicVolume}
+                  onMusicUpload={handleMusicUpload}
+                  onMusicVolumeChange={setMusicVolume}
+                  onMusicRemove={() => setMusicUrl("")}
                 />
               </div>
 
@@ -737,7 +771,7 @@ export default function Home() {
                   </h3>
                   <p className="mt-1 text-xs text-slate-400">
                     Customize the recipient name, phone model, and presenter
-                    image.
+                    video.
                   </p>
 
                   <div className="mt-4 space-y-4 text-xs">
@@ -767,15 +801,56 @@ export default function Home() {
                     </div>
                     <div>
                       <label className="mb-1.5 block font-medium text-slate-200">
-                        Presenter image URL (optional)
+                        Presenter video
                       </label>
-                      <input
-                        type="text"
-                        value={presenterImageUrl}
-                        onChange={(e) => setPresenterImageUrl(e.target.value)}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
-                        placeholder="https://example.com/presenter.jpg"
-                      />
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={handlePresenterVideoUpload}
+                          className="hidden"
+                        />
+                        <div className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 px-3 py-4 text-center hover:border-slate-600">
+                          <div>
+                            <svg
+                              className="mx-auto h-5 w-5 text-slate-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {presenterVideoUrl
+                                ? "Click to change video"
+                                : "Click to upload presenter video"}
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                      {presenterVideoUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="overflow-hidden rounded-lg border border-slate-700">
+                            <video
+                              src={presenterVideoUrl}
+                              className="h-16 w-24 object-cover"
+                              muted
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPresenterVideoUrl("")}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                       <p className="mt-1 text-[11px] text-slate-500">
                         Leave empty to use placeholder silhouette
                       </p>

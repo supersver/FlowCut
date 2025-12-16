@@ -17,6 +17,12 @@ interface TimelineProps {
   customClips: CustomClip[];
   onSeek: (frame: number) => void;
   onClipUpdate: (id: string, startFrame: number, endFrame: number) => void;
+  // Music props
+  musicUrl?: string;
+  musicVolume?: number;
+  onMusicUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onMusicVolumeChange?: (volume: number) => void;
+  onMusicRemove?: () => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -26,6 +32,11 @@ export const Timeline: React.FC<TimelineProps> = ({
   customClips,
   onSeek,
   onClipUpdate,
+  musicUrl,
+  musicVolume = 0.5,
+  onMusicUpload,
+  onMusicVolumeChange,
+  onMusicRemove,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -287,17 +298,132 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
 
       {/* Instructions */}
-      {customClips.length === 0 && (
+      {customClips.length === 0 && !musicUrl && (
         <p className="mt-2 text-center text-[11px] text-slate-500">
           Add custom clips above to see them on the timeline. Click anywhere to
           seek.
         </p>
       )}
-      {customClips.length > 0 && (
+      {(customClips.length > 0 || musicUrl) && (
         <p className="mt-2 text-center text-[11px] text-slate-500">
           Drag clips to move • Drag edges to resize • Click to seek
         </p>
       )}
+
+      {/* Music Track Section */}
+      <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🎵</span>
+            <span className="text-xs font-medium text-slate-200">
+              Background Music
+            </span>
+          </div>
+          {musicUrl && onMusicRemove && (
+            <button
+              type="button"
+              onClick={onMusicRemove}
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+
+        {!musicUrl ? (
+          <label className="block">
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={onMusicUpload}
+              className="hidden"
+            />
+            <div className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-700 py-3 text-center hover:border-slate-600 transition">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                  />
+                </svg>
+                <span className="text-xs text-slate-400">
+                  Click to add background music
+                </span>
+              </div>
+            </div>
+          </label>
+        ) : (
+          <div className="space-y-3">
+            {/* Music waveform visualization */}
+            <div className="relative h-10 rounded-lg bg-slate-800/50 overflow-hidden">
+              {/* Fake waveform bars */}
+              <div className="absolute inset-0 flex items-center justify-around px-1">
+                {Array.from({ length: 50 }).map((_, i) => {
+                  const height =
+                    20 + Math.sin(i * 0.5) * 15 + Math.random() * 10;
+                  const isActive = (i / 50) * 100 <= playheadPosition;
+                  return (
+                    <div
+                      key={i}
+                      className={`w-1 rounded-full transition-colors ${
+                        isActive
+                          ? "bg-gradient-to-t from-emerald-500 to-emerald-400"
+                          : "bg-slate-600"
+                      }`}
+                      style={{ height: `${height}%` }}
+                    />
+                  );
+                })}
+              </div>
+              {/* Playhead indicator on music track */}
+              <div
+                className="absolute top-0 h-full w-0.5 bg-white/50"
+                style={{ left: `${playheadPosition}%` }}
+              />
+            </div>
+
+            {/* Volume control */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  />
+                </svg>
+                <span className="text-[11px] text-slate-400 min-w-[40px]">
+                  {Math.round(musicVolume * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={musicVolume}
+                onChange={(e) =>
+                  onMusicVolumeChange?.(parseFloat(e.target.value))
+                }
+                className="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
