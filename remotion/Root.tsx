@@ -9,7 +9,7 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id="template1"
-        component={Template1}
+        component={Template1 as unknown as React.FC<Record<string, unknown>>}
         durationInFrames={450}
         fps={30}
         width={1080}
@@ -26,7 +26,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="template2"
-        component={Template2}
+        component={Template2 as unknown as React.FC<Record<string, unknown>>}
         durationInFrames={600}
         fps={30}
         width={1080}
@@ -43,7 +43,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="template3"
-        component={Template3}
+        component={Template3 as unknown as React.FC<Record<string, unknown>>}
         durationInFrames={750}
         fps={30}
         width={1080}

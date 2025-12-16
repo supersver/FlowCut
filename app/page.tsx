@@ -387,7 +387,7 @@ export default function Home() {
                   <Player
                     ref={playerRef}
                     component={
-                      selectedTemplate.component as React.FC<
+                      selectedTemplate.component as unknown as React.FC<
                         Record<string, unknown>
                       >
                     }
