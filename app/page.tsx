@@ -95,8 +95,14 @@ export default function Home() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  // Track when component is mounted on client to avoid SSR issues with Remotion Player
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Sync current frame from player
   useEffect(() => {
@@ -111,7 +117,7 @@ export default function Home() {
     return () => {
       player.removeEventListener("frameupdate", handleFrameUpdate);
     };
-  }, []);
+  }, [isMounted]);
 
   // Seek handler for timeline
   const handleSeek = useCallback((frame: number) => {
@@ -436,41 +442,47 @@ export default function Home() {
                   }}
                   className="overflow-hidden rounded-2xl border border-slate-800 bg-black"
                 >
-                  <Player
-                    ref={playerRef}
-                    component={
-                      selectedTemplate.component as unknown as React.FC<
-                        Record<string, unknown>
-                      >
-                    }
-                    durationInFrames={selectedTemplate.duration}
-                    compositionWidth={aspectRatio.width}
-                    compositionHeight={aspectRatio.height}
-                    acknowledgeRemotionLicense
-                    fps={30}
-                    inputProps={
-                      selectedTemplate.id === "template4"
-                        ? {
-                            recipientName,
-                            phoneName,
-                            presenterVideoUrl,
-                            customClips,
-                            musicUrl,
-                            musicVolume,
-                          }
-                        : {
-                            productImages,
-                            reviewText,
-                            reviewAuthor,
-                            rating,
-                            customClips,
-                            musicUrl,
-                            musicVolume,
-                          }
-                    }
-                    style={{ width: "100%", height: "100%" }}
-                    controls
-                  />
+                  {isMounted ? (
+                    <Player
+                      ref={playerRef}
+                      component={
+                        selectedTemplate.component as unknown as React.FC<
+                          Record<string, unknown>
+                        >
+                      }
+                      durationInFrames={selectedTemplate.duration}
+                      compositionWidth={aspectRatio.width}
+                      compositionHeight={aspectRatio.height}
+                      acknowledgeRemotionLicense
+                      fps={30}
+                      inputProps={
+                        selectedTemplate.id === "template4"
+                          ? {
+                              recipientName,
+                              phoneName,
+                              presenterVideoUrl,
+                              customClips,
+                              musicUrl,
+                              musicVolume,
+                            }
+                          : {
+                              productImages,
+                              reviewText,
+                              reviewAuthor,
+                              rating,
+                              customClips,
+                              musicUrl,
+                              musicVolume,
+                            }
+                      }
+                      style={{ width: "100%", height: "100%" }}
+                      controls
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-500">
+                      Loading player...
+                    </div>
+                  )}
                 </div>
               </div>
 
