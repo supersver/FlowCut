@@ -92,8 +92,10 @@ export default function Home() {
   const [customClips, setCustomClips] = useState<CustomClip[]>([]);
   // Template4 specific props
   const [recipientName, setRecipientName] = useState("Mayank");
-  const [phoneName, setPhoneName] = useState("Vivo X200");
+  const [phoneName, setPhoneName] = useState("Vivo X300");
   const [presenterVideoUrl, setPresenterVideoUrl] = useState("");
+  const [productImageUrl, setProductImageUrl] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   // Music settings
   const [musicUrl, setMusicUrl] = useState("");
   const [musicVolume, setMusicVolume] = useState(0.5);
@@ -168,6 +170,24 @@ export default function Home() {
     }
   };
 
+  const handleProductImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = await fileToBase64(file);
+      setProductImageUrl(url);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = await fileToBase64(file);
+      setLogoUrl(url);
+    }
+  };
+
   const handleMusicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -237,6 +257,8 @@ export default function Home() {
                   recipientName,
                   phoneName,
                   presenterVideoUrl,
+                  productImageUrl,
+                  logoUrl,
                   customClips,
                   musicUrl,
                   musicVolume,
@@ -469,6 +491,8 @@ export default function Home() {
                               recipientName,
                               phoneName,
                               presenterVideoUrl,
+                              productImageUrl,
+                              logoUrl,
                               customClips,
                               musicUrl,
                               musicVolume,
@@ -902,6 +926,122 @@ export default function Home() {
                       )}
                       <p className="mt-1 text-[11px] text-slate-500">
                         Leave empty to use placeholder silhouette
+                      </p>
+                    </div>
+
+                    {/* Product Image Upload */}
+                    <div>
+                      <label className="mb-1.5 block font-medium text-slate-200">
+                        Product image (for phone screen)
+                      </label>
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProductImageUpload}
+                          className="hidden"
+                        />
+                        <div className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 px-3 py-4 text-center hover:border-slate-600">
+                          <div>
+                            <svg
+                              className="mx-auto h-5 w-5 text-slate-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {productImageUrl
+                                ? "Click to change image"
+                                : "Click to upload product image"}
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                      {productImageUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="overflow-hidden rounded-lg border border-slate-700">
+                            <img
+                              src={productImageUrl}
+                              alt="Product"
+                              className="h-16 w-16 object-cover"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setProductImageUrl("")}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Shows on the phone screen during phone tease
+                      </p>
+                    </div>
+
+                    {/* Logo Upload */}
+                    <div>
+                      <label className="mb-1.5 block font-medium text-slate-200">
+                        Brand logo
+                      </label>
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                        <div className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-700 px-3 py-4 text-center hover:border-slate-600">
+                          <div>
+                            <svg
+                              className="mx-auto h-5 w-5 text-slate-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                              />
+                            </svg>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {logoUrl
+                                ? "Click to change logo"
+                                : "Click to upload brand logo"}
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                      {logoUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="overflow-hidden rounded-lg border border-slate-700 bg-white p-1">
+                            <img
+                              src={logoUrl}
+                              alt="Logo"
+                              className="h-10 w-auto max-w-[80px] object-contain"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setLogoUrl("")}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Displayed on top-left corner of the video
                       </p>
                     </div>
                   </div>

@@ -26,6 +26,8 @@ interface Template4Props {
   recipientName: string;
   phoneName: string;
   presenterVideoUrl?: string;
+  productImageUrl?: string;
+  logoUrl?: string;
   customClips?: CustomClip[];
   musicUrl?: string;
   musicVolume?: number;
@@ -35,6 +37,8 @@ export const Template4: React.FC<Template4Props> = ({
   recipientName,
   phoneName,
   presenterVideoUrl,
+  productImageUrl,
+  logoUrl,
   customClips = [],
   musicUrl,
   musicVolume = 0.1, // Default low music volume to prioritize voice
@@ -74,6 +78,41 @@ export const Template4: React.FC<Template4Props> = ({
       {/* ============================================ */}
       {/* GLOBAL LAYERS */}
       {/* ============================================ */}
+
+      {/* Logo on top-left */}
+      {logoUrl && (
+        <div
+          style={{
+            position: "absolute",
+            top: "40px",
+            left: "40px",
+            zIndex: 100,
+            opacity: interpolate(frame, [0, 30], [0, 1], {
+              extrapolateRight: "clamp",
+            }),
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 16px",
+              background: "rgba(255, 255, 255, 0.95)",
+              borderRadius: "12px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+            }}
+          >
+            <img
+              src={logoUrl}
+              alt="Logo"
+              style={{
+                height: "40px",
+                width: "auto",
+                maxWidth: "120px",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 1. Global Presenter Video Layer */}
       {/* This ensures the video plays continuously without cuts between scenes */}
@@ -182,7 +221,7 @@ export const Template4: React.FC<Template4Props> = ({
       {/* Scene 4: Soft Reveal + Tease (420-540 frames) */}
       <Sequence from={420} durationInFrames={120} style={{ zIndex: 10 }}>
         {/* Note: Presenter is hidden by global opacity logic during this time */}
-        <PhoneTease phoneName={phoneName} />
+        <PhoneTease phoneName={phoneName} productImageUrl={productImageUrl} />
 
         {/* Small PiP Presenter specific to this scene */}
         {presenterVideoUrl && (
@@ -191,8 +230,8 @@ export const Template4: React.FC<Template4Props> = ({
               position: "absolute",
               bottom: "80px",
               right: "50px",
-              width: "150px",
-              height: "200px",
+              width: "250px",
+              height: "350px",
               borderRadius: "20px",
               overflow: "hidden",
               border: "3px solid rgba(255,255,255,0.2)",
