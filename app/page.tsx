@@ -14,7 +14,32 @@ const ASPECT_RATIOS = [
   { id: "4:5", name: "Instagram (4:5)", width: 1080, height: 1350 },
 ];
 
-const templates = [
+interface CustomClip {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  type: "image" | "video";
+}
+
+// Shared props interface for all templates
+interface TemplateProps {
+  productImages: string[];
+  reviewText: string;
+  reviewAuthor: string;
+  rating: number;
+  customClips?: CustomClip[];
+}
+
+interface TemplateConfig {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  component: React.ComponentType<TemplateProps>;
+}
+
+const templates: TemplateConfig[] = [
   {
     id: "template1",
     name: "Modern Slide",
@@ -37,14 +62,6 @@ const templates = [
     component: Template3,
   },
 ];
-
-interface CustomClip {
-  id: string;
-  url: string;
-  startFrame: number;
-  endFrame: number;
-  type: "image" | "video";
-}
 
 export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
@@ -84,19 +101,34 @@ export default function Home() {
     playerRef.current?.seekTo(frame);
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const urls = Array.from(files).map((file) => URL.createObjectURL(file));
-      setProductImages(urls);
+      const base64Promises = Array.from(files).map((file) =>
+        fileToBase64(file)
+      );
+      const base64Urls = await Promise.all(base64Promises);
+      setProductImages(base64Urls);
     }
   };
 
-  const handleCustomClipUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomClipUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = e.target.files;
     if (files) {
-      Array.from(files).forEach((file) => {
-        const url = URL.createObjectURL(file);
+      for (const file of Array.from(files)) {
+        const url = await fileToBase64(file);
         const type = file.type.startsWith("video/") ? "video" : "image";
         const newClip: CustomClip = {
           id: `clip-${Date.now()}-${Math.random()}`,
@@ -106,7 +138,7 @@ export default function Home() {
           type,
         };
         setCustomClips((prev) => [...prev, newClip]);
-      });
+      }
     }
   };
 
