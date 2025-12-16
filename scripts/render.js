@@ -4,7 +4,6 @@
 const { bundle } = require("@remotion/bundler");
 const { renderMedia, selectComposition } = require("@remotion/renderer");
 const path = require("path");
-const fs = require("fs");
 
 async function render() {
   // Read input from stdin
@@ -13,45 +12,82 @@ async function render() {
     inputData += chunk;
   }
 
-  const { templateId, duration, props, width, height, outputPath } =
-    JSON.parse(inputData);
+  let params;
+  try {
+    params = JSON.parse(inputData);
+  } catch (e) {
+    console.log(
+      JSON.stringify({
+        success: false,
+        error: "Invalid JSON input: " + e.message,
+      })
+    );
+    process.exit(1);
+  }
+
+  const { templateId, duration, props, width, height, outputPath } = params;
+
+  if (!templateId || !outputPath) {
+    console.log(
+      JSON.stringify({
+        success: false,
+        error: "Missing required parameters: templateId or outputPath",
+      })
+    );
+    process.exit(1);
+  }
 
   try {
-    console.error("Bundling Remotion project...");
+    console.error(`[Render] Starting render for template: ${templateId}`);
+    console.error(
+      `[Render] Dimensions: ${width}x${height}, Duration: ${duration} frames`
+    );
+    console.error(`[Render] Output path: ${outputPath}`);
 
     // Bundle the Remotion project
+    console.error("[Render] Bundling Remotion project...");
+    const entryPoint = path.join(process.cwd(), "remotion", "Root.tsx");
+    console.error(`[Render] Entry point: ${entryPoint}`);
+
     const bundleLocation = await bundle({
-      entryPoint: path.join(process.cwd(), "remotion", "Root.tsx"),
+      entryPoint,
       webpackOverride: (config) => config,
     });
-
-    console.error("Selecting composition...");
+    console.error(`[Render] Bundle created at: ${bundleLocation}`);
 
     // Get composition
+    console.error("[Render] Selecting composition...");
     const composition = await selectComposition({
       serveUrl: bundleLocation,
       id: templateId,
       inputProps: props,
     });
-
-    console.error("Rendering video...");
+    console.error(`[Render] Composition selected: ${composition.id}`);
 
     // Render video with dynamic dimensions
+    console.error("[Render] Rendering video...");
     await renderMedia({
       composition: {
         ...composition,
         durationInFrames: duration,
-        width,
-        height,
+        width: width || composition.width,
+        height: height || composition.height,
       },
       serveUrl: bundleLocation,
       codec: "h264",
       outputLocation: outputPath,
       inputProps: props,
+      onProgress: ({ progress }) => {
+        console.error(`[Render] Progress: ${Math.round(progress * 100)}%`);
+      },
     });
 
+    console.error("[Render] Video rendered successfully!");
     console.log(JSON.stringify({ success: true, outputPath }));
+    process.exit(0);
   } catch (error) {
+    console.error("[Render] Error:", error.message);
+    console.error("[Render] Stack:", error.stack);
     console.log(JSON.stringify({ success: false, error: error.message }));
     process.exit(1);
   }

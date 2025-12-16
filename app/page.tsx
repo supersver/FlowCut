@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
-import { Player } from "@remotion/player";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Player, PlayerRef } from "@remotion/player";
 import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
 import { Template3 } from "@/remotion/templates/Template3";
+import { Timeline } from "./components/Timeline";
 
 const ASPECT_RATIOS = [
   { id: "9:16", name: "Portrait (9:16)", width: 1080, height: 1920 },
@@ -59,6 +60,28 @@ export default function Home() {
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const playerRef = useRef<PlayerRef>(null);
+
+  // Sync current frame from player
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    const handleFrameUpdate = () => {
+      setCurrentFrame(player.getCurrentFrame());
+    };
+
+    player.addEventListener("frameupdate", handleFrameUpdate);
+    return () => {
+      player.removeEventListener("frameupdate", handleFrameUpdate);
+    };
+  }, [selectedTemplate]);
+
+  // Seek handler for timeline
+  const handleSeek = useCallback((frame: number) => {
+    playerRef.current?.seekTo(frame);
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -140,34 +163,59 @@ export default function Home() {
       clearInterval(progressInterval);
 
       if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `flowcut-video-${Date.now()}.mp4`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        setExportProgress(100);
+        const contentType = response.headers.get("content-type");
+        console.log("Response content-type:", contentType);
 
-        setTimeout(() => {
-          setIsExporting(false);
-          setExportProgress(0);
-        }, 2000);
+        if (contentType?.includes("video/mp4")) {
+          const blob = await response.blob();
+          console.log("Video blob size:", blob.size);
+
+          if (blob.size === 0) {
+            throw new Error("Received empty video file");
+          }
+
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `flowcut-video-${Date.now()}.mp4`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          setExportProgress(100);
+
+          setTimeout(() => {
+            setIsExporting(false);
+            setExportProgress(0);
+          }, 2000);
+        } else {
+          // Response might be JSON error
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || "Server returned non-video response"
+          );
+        }
       } else {
-        throw new Error("Export failed");
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown server error" }));
+        console.error("Server error:", errorData);
+        throw new Error(
+          errorData.error || `Export failed with status ${response.status}`
+        );
       }
     } catch (error) {
       console.error("Export error:", error);
-      alert("Failed to export video. Please try again.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      alert(`Failed to export video: ${errorMessage}`);
       setIsExporting(false);
       setExportProgress(0);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50">
+    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-50">
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-72 bg-gradient-to-b from-blue-500/40 via-purple-500/20 to-transparent blur-3xl" />
       <div className="relative z-10">
         <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
@@ -308,6 +356,7 @@ export default function Home() {
                   className="overflow-hidden rounded-2xl border border-slate-800 bg-black"
                 >
                   <Player
+                    ref={playerRef}
                     component={selectedTemplate.component}
                     durationInFrames={selectedTemplate.duration}
                     compositionWidth={aspectRatio.width}
@@ -333,6 +382,18 @@ export default function Home() {
                 <span className="rounded-full bg-slate-800 px-3 py-1">
                   Rating: {rating}★
                 </span>
+              </div>
+
+              {/* Timeline */}
+              <div className="mt-5">
+                <Timeline
+                  currentFrame={currentFrame}
+                  durationInFrames={selectedTemplate.duration}
+                  fps={30}
+                  customClips={customClips}
+                  onSeek={handleSeek}
+                  onClipUpdate={updateClipTiming}
+                />
               </div>
 
               {/* Aspect Ratio Selection */}
