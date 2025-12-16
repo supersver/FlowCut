@@ -296,7 +296,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-50">
+    <div className="min-h-screen  bg-slate-950 text-slate-50">
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-72 bg-gradient-to-b from-blue-500/40 via-purple-500/20 to-transparent blur-3xl" />
       <div className="relative z-10">
         <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">

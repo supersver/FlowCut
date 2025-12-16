@@ -167,7 +167,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   }, [draggingClip, durationInFrames, fps, onClipUpdate]);
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+    <div className="rounded-2xl relative border border-slate-800 bg-slate-900/70 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-slate-100">Timeline</h3>
         <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -185,7 +185,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
 
       {/* Time Ruler */}
-      <div className="mb-2 flex h-6 items-end justify-between border-b border-slate-800 pb-1">
+      <div className="mb-2 relative flex h-6 items-end justify-between border-b border-slate-800 pb-1">
         {markers.map((marker, idx) => (
           <div
             key={idx}
