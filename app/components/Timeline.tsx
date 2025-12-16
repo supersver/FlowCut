@@ -67,6 +67,10 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   const handleTimelineClick = useCallback(
     (e: React.MouseEvent) => {
+      console.log("Timeline clicked!", {
+        draggingClip,
+        timelineRef: timelineRef.current,
+      });
       if (draggingClip) return;
 
       const rect = timelineRef.current?.getBoundingClientRect();
@@ -75,6 +79,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       const x = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, x / rect.width));
       const frame = Math.round(percentage * durationInFrames);
+      console.log("Seeking to frame:", frame);
       onSeek(frame);
     },
     [durationInFrames, onSeek, draggingClip]
