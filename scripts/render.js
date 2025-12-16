@@ -2,7 +2,11 @@
 // It's invoked by the API route using child_process.spawn
 
 const { bundle } = require("@remotion/bundler");
-const { renderMedia, selectComposition } = require("@remotion/renderer");
+const {
+  renderMedia,
+  selectComposition,
+  ensureBrowser,
+} = require("@remotion/renderer");
 const path = require("path");
 
 async function render() {
@@ -43,6 +47,23 @@ async function render() {
       `[Render] Dimensions: ${width}x${height}, Duration: ${duration} frames`
     );
     console.error(`[Render] Output path: ${outputPath}`);
+
+    // Ensure browser is available (will download if needed)
+    console.error("[Render] Ensuring browser is available...");
+    await ensureBrowser({
+      onBrowserDownload: (progress) => {
+        if (progress.downloaded === progress.totalSize) {
+          console.error("[Render] Browser download complete!");
+        } else {
+          console.error(
+            `[Render] Downloading browser: ${Math.round(
+              (progress.downloaded / progress.totalSize) * 100
+            )}%`
+          );
+        }
+      },
+    });
+    console.error("[Render] Browser is ready!");
 
     // Bundle the Remotion project
     console.error("[Render] Bundling Remotion project...");

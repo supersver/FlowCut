@@ -62,6 +62,7 @@ export default function Home() {
   const [exportProgress, setExportProgress] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
   const playerRef = useRef<PlayerRef>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
 
   // Sync current frame from player
   useEffect(() => {
@@ -130,15 +131,8 @@ export default function Home() {
     setExportProgress(0);
 
     try {
-      const progressInterval = setInterval(() => {
-        setExportProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 500);
+      setExportProgress(5);
+      console.log("Starting export...");
 
       const response = await fetch("/api/render", {
         method: "POST",
@@ -160,55 +154,56 @@ export default function Home() {
         }),
       });
 
-      clearInterval(progressInterval);
+      const contentType = response.headers.get("content-type");
+      console.log(
+        "Response status:",
+        response.status,
+        "Content-type:",
+        contentType
+      );
 
-      if (response.ok) {
-        const contentType = response.headers.get("content-type");
-        console.log("Response content-type:", contentType);
-
-        if (contentType?.includes("video/mp4")) {
-          const blob = await response.blob();
-          console.log("Video blob size:", blob.size);
-
-          if (blob.size === 0) {
-            throw new Error("Received empty video file");
-          }
-
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `flowcut-video-${Date.now()}.mp4`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-          setExportProgress(100);
-
-          setTimeout(() => {
-            setIsExporting(false);
-            setExportProgress(0);
-          }, 2000);
-        } else {
-          // Response might be JSON error
+      if (!response.ok) {
+        let errorMessage = `Server error: ${response.status}`;
+        try {
           const errorData = await response.json();
-          throw new Error(
-            errorData.error || "Server returned non-video response"
-          );
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Response wasn't JSON
         }
+        throw new Error(errorMessage);
+      }
+
+      if (contentType?.includes("video/mp4")) {
+        setExportProgress(90);
+        const blob = await response.blob();
+
+        if (blob.size === 0) {
+          throw new Error("Received empty video file");
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `flowcut-video-${Date.now()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        setExportProgress(100);
+        setTimeout(() => {
+          setIsExporting(false);
+          setExportProgress(0);
+        }, 2000);
       } else {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Unknown server error" }));
-        console.error("Server error:", errorData);
-        throw new Error(
-          errorData.error || `Export failed with status ${response.status}`
-        );
+        const data = await response.json();
+        throw new Error(data.error || "Server returned unexpected response");
       }
     } catch (error) {
       console.error("Export error:", error);
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Failed to export video: ${errorMessage}`);
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Export failed: ${errorMessage}`);
       setIsExporting(false);
       setExportProgress(0);
     }
@@ -350,6 +345,7 @@ export default function Home() {
                 }}
               >
                 <div
+                  ref={playerContainerRef}
                   style={{
                     aspectRatio: `${aspectRatio.width} / ${aspectRatio.height}`,
                   }}
@@ -361,6 +357,7 @@ export default function Home() {
                     durationInFrames={selectedTemplate.duration}
                     compositionWidth={aspectRatio.width}
                     compositionHeight={aspectRatio.height}
+                    acknowledgeRemotionLicense
                     fps={30}
                     inputProps={{
                       productImages,
