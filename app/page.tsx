@@ -6,6 +6,7 @@ import { PlayerRef } from "@remotion/player";
 import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
 import { Template3 } from "@/remotion/templates/Template3";
+import { Template4 } from "@/remotion/templates/Template4";
 import { Timeline } from "./components/Timeline";
 
 // Dynamically import Player to prevent SSR issues
@@ -69,6 +70,14 @@ const templates: TemplateConfig[] = [
     duration: 750,
     component: Template3,
   },
+  {
+    id: "template4",
+    name: "WhatsApp Pre-Launch",
+    description:
+      "Personalized presenter video with phone tease & WhatsApp CTA.",
+    duration: 750,
+    component: Template4,
+  },
 ];
 
 export default function Home() {
@@ -82,6 +91,10 @@ export default function Home() {
   const [reviewAuthor, setReviewAuthor] = useState("John Doe");
   const [rating, setRating] = useState(5);
   const [customClips, setCustomClips] = useState<CustomClip[]>([]);
+  // Template4 specific props
+  const [recipientName, setRecipientName] = useState("Mayank");
+  const [phoneName, setPhoneName] = useState("Vivo X200");
+  const [presenterImageUrl, setPresenterImageUrl] = useState("");
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -184,13 +197,21 @@ export default function Home() {
           duration: selectedTemplate.duration,
           width: aspectRatio.width,
           height: aspectRatio.height,
-          props: {
-            productImages,
-            reviewText,
-            reviewAuthor,
-            rating,
-            customClips,
-          },
+          props:
+            selectedTemplate.id === "template4"
+              ? {
+                  recipientName,
+                  phoneName,
+                  presenterImageUrl,
+                  customClips,
+                }
+              : {
+                  productImages,
+                  reviewText,
+                  reviewAuthor,
+                  rating,
+                  customClips,
+                },
         }),
       });
 
@@ -403,13 +424,22 @@ export default function Home() {
                     compositionHeight={aspectRatio.height}
                     acknowledgeRemotionLicense
                     fps={30}
-                    inputProps={{
-                      productImages,
-                      reviewText,
-                      reviewAuthor,
-                      rating,
-                      customClips,
-                    }}
+                    inputProps={
+                      selectedTemplate.id === "template4"
+                        ? {
+                            recipientName,
+                            phoneName,
+                            presenterImageUrl,
+                            customClips,
+                          }
+                        : {
+                            productImages,
+                            reviewText,
+                            reviewAuthor,
+                            rating,
+                            customClips,
+                          }
+                    }
                     style={{ width: "100%", height: "100%" }}
                     controls
                   />
@@ -699,65 +729,119 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Review Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                <h3 className="text-sm font-medium text-slate-100">
-                  3. Customize review
-                </h3>
-                <p className="mt-1 text-xs text-slate-400">
-                  Control the review text, author and rating stars.
-                </p>
+              {/* Template4 Controls or Review Section */}
+              {selectedTemplate.id === "template4" ? (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+                  <h3 className="text-sm font-medium text-slate-100">
+                    3. Personalize video
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Customize the recipient name, phone model, and presenter
+                    image.
+                  </p>
 
-                <div className="mt-4 space-y-4 text-xs">
-                  <div>
-                    <label className="mb-1.5 block font-medium text-slate-200">
-                      Review text
-                    </label>
-                    <textarea
-                      value={reviewText}
-                      onChange={(e) => setReviewText(e.target.value)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
-                      rows={3}
-                      placeholder="Share what customers love about this product..."
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
+                  <div className="mt-4 space-y-4 text-xs">
                     <div>
                       <label className="mb-1.5 block font-medium text-slate-200">
-                        Author name
+                        Recipient name
                       </label>
                       <input
                         type="text"
-                        value={reviewAuthor}
-                        onChange={(e) => setReviewAuthor(e.target.value)}
+                        value={recipientName}
+                        onChange={(e) => setRecipientName(e.target.value)}
                         className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
-                        placeholder="e.g. Sarah M."
+                        placeholder="e.g. Mayank"
                       />
                     </div>
                     <div>
                       <label className="mb-1.5 block font-medium text-slate-200">
-                        Rating
+                        Phone name
                       </label>
-                      <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        value={phoneName}
+                        onChange={(e) => setPhoneName(e.target.value)}
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                        placeholder="e.g. Vivo X200"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block font-medium text-slate-200">
+                        Presenter image URL (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={presenterImageUrl}
+                        onChange={(e) => setPresenterImageUrl(e.target.value)}
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                        placeholder="https://example.com/presenter.jpg"
+                      />
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Leave empty to use placeholder silhouette
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+                  <h3 className="text-sm font-medium text-slate-100">
+                    3. Customize review
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Control the review text, author and rating stars.
+                  </p>
+
+                  <div className="mt-4 space-y-4 text-xs">
+                    <div>
+                      <label className="mb-1.5 block font-medium text-slate-200">
+                        Review text
+                      </label>
+                      <textarea
+                        value={reviewText}
+                        onChange={(e) => setReviewText(e.target.value)}
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                        rows={3}
+                        placeholder="Share what customers love about this product..."
+                      />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
+                      <div>
+                        <label className="mb-1.5 block font-medium text-slate-200">
+                          Author name
+                        </label>
                         <input
-                          type="range"
-                          min="1"
-                          max="5"
-                          value={rating}
-                          onChange={(e) => setRating(Number(e.target.value))}
-                          className="w-full accent-blue-500"
+                          type="text"
+                          value={reviewAuthor}
+                          onChange={(e) => setReviewAuthor(e.target.value)}
+                          className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                          placeholder="e.g. Sarah M."
                         />
-                        <div className="flex min-w-[3.5rem] flex-col items-end text-[11px] text-slate-200">
-                          <span className="font-semibold">{rating}.0</span>
-                          <span className="text-yellow-400">
-                            {"★".repeat(rating)}
-                          </span>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block font-medium text-slate-200">
+                          Rating
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min="1"
+                            max="5"
+                            value={rating}
+                            onChange={(e) => setRating(Number(e.target.value))}
+                            className="w-full accent-blue-500"
+                          />
+                          <div className="flex min-w-[3.5rem] flex-col items-end text-[11px] text-slate-200">
+                            <span className="font-semibold">{rating}.0</span>
+                            <span className="text-yellow-400">
+                              {"★".repeat(rating)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </section>
           </div>
         </main>

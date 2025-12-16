@@ -3,6 +3,7 @@ import { Composition, registerRoot } from "remotion";
 import { Template1 } from "./templates/Template1";
 import { Template2 } from "./templates/Template2";
 import { Template3 } from "./templates/Template3";
+import { Template4 } from "./templates/Template4";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -55,6 +56,20 @@ export const RemotionRoot: React.FC = () => {
           reviewText: "Life changing product!",
           reviewAuthor: "Mike Johnson",
           rating: 5,
+          customClips: [],
+        }}
+      />
+      <Composition
+        id="template4"
+        component={Template4 as unknown as React.FC<Record<string, unknown>>}
+        durationInFrames={750}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          recipientName: "Mayank",
+          phoneName: "Vivo X200",
+          presenterImageUrl: "",
           customClips: [],
         }}
       />
