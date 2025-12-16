@@ -151,11 +151,10 @@ export const Template1: React.FC<Template1Props> = ({
       <div
         style={{
           opacity: imageOpacity,
-          transform: `scale(${imageScale}) translateY(${floatY}px) rotate(${floatRotate}deg)`,
           position: "absolute",
           top: "8%",
           left: "50%",
-          transform: `translateX(-50%) scale(${imageScale}) translateY(${floatY}px)`,
+          transform: `translateX(-50%) scale(${imageScale}) translateY(${floatY}px) rotate(${floatRotate}deg)`,
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
