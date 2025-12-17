@@ -265,7 +265,7 @@ export const PhoneTease: React.FC<PhoneTeaseProps> = ({
                     rgba(0, 150, 255, 0.4) 40%,
                     transparent 70%)`,
                   filter: "blur(25px)",
-                  mixBlendMode: "add",
+                  mixBlendMode: "lighten",
                 }}
               />
             </div>

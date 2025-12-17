@@ -189,6 +189,12 @@ async function render() {
     console.error(`[Render] Composition selected: ${composition.id}`);
 
     // Render video with dynamic dimensions
+    // Use concurrency to leverage multiple CPU cores for faster rendering
+    const cpuCount = require("os").cpus().length;
+    const concurrency = Math.max(1, Math.floor(cpuCount * 0.75)); // Use 75% of cores
+    console.error(
+      `[Render] Using ${concurrency} threads (of ${cpuCount} available cores)`
+    );
     console.error("[Render] Rendering video...");
     await renderMedia({
       composition: {
@@ -202,6 +208,7 @@ async function render() {
       codec: "h264",
       outputLocation: outputPath,
       inputProps: props,
+      concurrency,
       onProgress: ({ progress }) => {
         console.error(`[Render] Progress: ${Math.round(progress * 100)}%`);
       },

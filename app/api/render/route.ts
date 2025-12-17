@@ -79,17 +79,29 @@ export async function POST(request: NextRequest) {
       throw new Error(result.error || "Render failed");
     }
 
-    // Read the rendered video
-    const videoBuffer = fs.readFileSync(outputPath);
+    // Stream the rendered video instead of loading it all into memory
+    const videoStream = fs.createReadStream(outputPath);
+    const stat = fs.statSync(outputPath);
 
-    // Clean up
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    // Create a ReadableStream from the Node.js stream
+    const webStream = new ReadableStream({
+      start(controller) {
+        videoStream.on("data", (chunk) => controller.enqueue(chunk));
+        videoStream.on("end", () => {
+          controller.close();
+          // Clean up temp directory after streaming is done
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        });
+        videoStream.on("error", (err) => controller.error(err));
+      },
+    });
 
-    // Return video file
-    return new NextResponse(videoBuffer, {
+    // Return video file as a stream
+    return new NextResponse(webStream, {
       status: 200,
       headers: {
         "Content-Type": "video/mp4",
+        "Content-Length": stat.size.toString(),
         "Content-Disposition": `attachment; filename="flowcut-video-${Date.now()}.mp4"`,
       },
     });
