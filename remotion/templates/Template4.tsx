@@ -104,9 +104,9 @@ export const Template4: React.FC<Template4Props> = ({
               src={logoUrl}
               alt="Logo"
               style={{
-                height: "40px",
+                height: "50px",
                 width: "auto",
-                maxWidth: "120px",
+                maxWidth: "150px",
                 objectFit: "contain",
               }}
             />

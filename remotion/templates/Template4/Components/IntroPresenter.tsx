@@ -107,7 +107,7 @@ export const IntroPresenter: React.FC<IntroPresenterProps> = ({
                 letterSpacing: "-0.5px",
               }}
             >
-              Hi {recipientName}
+              Hey {recipientName}
             </span>
 
             {/* Animated Wave Emoji */}
