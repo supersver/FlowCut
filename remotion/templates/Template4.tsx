@@ -224,7 +224,7 @@ export const Template4: React.FC<Template4Props> = ({
         <PhoneTease phoneName={phoneName} productImageUrl={productImageUrl} />
 
         {/* Small PiP Presenter specific to this scene */}
-        {presenterVideoUrl && (
+        {/* {presenterVideoUrl && (
           <div
             style={{
               position: "absolute",
@@ -253,7 +253,7 @@ export const Template4: React.FC<Template4Props> = ({
               muted={true} // Muted because master audio comes from the hidden global video layer
             />
           </div>
-        )}
+        )} */}
       </Sequence>
 
       {/* Scene 5: Reply-Based CTA (540-660 frames) */}

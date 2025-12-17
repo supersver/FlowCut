@@ -6,435 +6,272 @@ interface PhoneTeaseProps {
   productImageUrl?: string;
 }
 
-// Feature bubbles data
-const FEATURE_BUBBLES = [
-  { text: "Faster RAM", angle: 30, distance: 420, delay: 10, size: "medium" },
-  { text: "Faster CPU", angle: 350, distance: 350, delay: 20, size: "large" },
-  { text: "More Space", angle: 150, distance: 340, delay: 5, size: "medium" },
-  {
-    text: "200x Zoom Camera",
-    angle: 210,
-    distance: 440,
-    delay: 25,
-    size: "large",
-  },
-  {
-    text: "Bigger Battery",
-    angle: 280,
-    distance: 520,
-    delay: 15,
-    size: "large",
-  },
-];
-
-interface FeatureBubbleProps {
-  text: string;
-  angle: number;
-  distance: number;
-  delay: number;
-  size: "small" | "medium" | "large";
-  frame: number;
-}
-
-const FeatureBubble: React.FC<FeatureBubbleProps> = ({
-  text,
-  angle,
-  distance,
-  delay,
-  size,
-  frame,
-}) => {
-  // Entrance animation with delay
-  const adjustedFrame = Math.max(0, frame - delay);
-
-  const opacity = interpolate(adjustedFrame, [0, 20], [0, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  const scale = interpolate(adjustedFrame, [0, 25], [0.3, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  // Floating motion - each bubble has slightly different speed
-  const floatOffset = interpolate(
-    Math.sin((frame + delay * 5) * 0.03),
-    [-1, 1],
-    [-12, 12]
-  );
-
-  const floatOffsetX = interpolate(
-    Math.cos((frame + delay * 3) * 0.025),
-    [-1, 1],
-    [-8, 8]
-  );
-
-  // Calculate position based on angle and distance
-  const angleRad = (angle * Math.PI) / 180;
-  const x = Math.cos(angleRad) * distance + floatOffsetX;
-  const y = Math.sin(angleRad) * distance + floatOffset;
-
-  // Glow pulse
-  const glowIntensity = interpolate(
-    Math.sin((frame + delay * 2) * 0.06),
-    [-1, 1],
-    [0.3, 0.7]
-  );
-
-  // Size styles
-  const sizeStyles = {
-    small: { padding: "10px 18px", fontSize: "18px" },
-    medium: { padding: "14px 24px", fontSize: "22px" },
-    large: { padding: "16px 28px", fontSize: "24px" },
-  };
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${scale})`,
-        opacity,
-        ...sizeStyles[size],
-        background: `linear-gradient(135deg, rgba(0, 120, 255, ${
-          0.15 + glowIntensity * 0.1
-        }) 0%, rgba(100, 180, 255, ${0.1 + glowIntensity * 0.05}) 100%)`,
-        backdropFilter: "blur(10px)",
-        borderRadius: "50px",
-        border: `2px solid rgba(0, 180, 255, ${0.3 + glowIntensity * 0.3})`,
-        boxShadow: `
-          0 0 30px rgba(0, 150, 255, ${glowIntensity * 0.4}),
-          0 8px 32px rgba(0, 0, 0, 0.3),
-          inset 0 1px 0 rgba(255, 255, 255, 0.15)
-        `,
-        whiteSpace: "nowrap",
-        zIndex: 5,
-      }}
-    >
-      <span
-        style={{
-          color: "rgba(255, 255, 255, 0.95)",
-          fontFamily: "sans-serif",
-          fontWeight: 600,
-          letterSpacing: "0.5px",
-          textShadow: `0 0 20px rgba(0, 180, 255, ${glowIntensity})`,
-        }}
-      >
-        {text}
-      </span>
-    </div>
-  );
-};
-
 export const PhoneTease: React.FC<PhoneTeaseProps> = ({
   phoneName,
   productImageUrl,
 }) => {
   const frame = useCurrentFrame();
 
-  // Entrance animations
-  const opacity = interpolate(frame, [0, 30], [0, 1], {
+  // Smoother Entrance
+  const opacity = interpolate(frame, [0, 40], [0, 1], {
     extrapolateRight: "clamp",
   });
 
-  const rotation = interpolate(frame, [0, 120], [-3, 3], {
+  // Premium Floating animation
+  const floatY = interpolate(Math.sin(frame * 0.03), [-1, 1], [-12, 12]);
+
+  // Scale reveal (Starts smaller for drama)
+  const revealScale = interpolate(frame, [0, 90], [0.9, 1.15], {
+    // UPSCALE: End scale 1.15
     extrapolateRight: "clamp",
   });
 
-  // Floating animation
-  const floatY = interpolate(Math.sin(frame * 0.04), [-1, 1], [-8, 8]);
-
-  // Scale reveal
-  const revealScale = interpolate(frame, [0, 90], [0.9, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  // Light sweep
-  const sweepPosition = interpolate(frame % 90, [0, 90], [-50, 150]);
-
-  // Glow pulse
-  const glowIntensity = interpolate(
-    Math.sin(frame * 0.08),
+  // Glow pulse - coordinated layers
+  const glowPulse1 = interpolate(Math.sin(frame * 0.05), [-1, 1], [0.6, 1]); // Main
+  const glowPulse2 = interpolate(
+    Math.sin(frame * 0.07 + 1),
     [-1, 1],
     [0.4, 0.8]
-  );
-  const screenPulse = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.8, 1]);
+  ); // Secondary
+
+  // Spiraling screen animation
+  const spiralRotation = interpolate(frame, [0, 150], [0, 240]);
+
+  // God Rays Rotation
+  const raysRotation = interpolate(frame, [0, 300], [0, 360]);
 
   return (
-    <div
+    <AbsoluteFill
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        opacity,
-        transform: `rotate(${rotation}deg) translateY(${floatY}px) scale(${revealScale})`,
-        width: "100%",
-        height: "100%",
-        position: "relative",
+        background: "linear-gradient(180deg, #020205 0%, #080a14 100%)",
+        perspective: "1000px", // For floor reflection 3D feel
       }}
     >
-      {/* Feature Bubbles */}
-      {FEATURE_BUBBLES.map((bubble, index) => (
-        <FeatureBubble
-          key={index}
-          text={bubble.text}
-          angle={bubble.angle}
-          distance={bubble.distance}
-          delay={bubble.delay}
-          size={bubble.size as "small" | "medium" | "large"}
-          frame={frame}
-        />
-      ))}
-
-      {/* Outer glow ring */}
+      {/* Volumetric "God Rays" Background */}
       <div
         style={{
           position: "absolute",
-          width: productImageUrl ? "500px" : "420px",
-          height: productImageUrl ? "500px" : "800px",
-          borderRadius: productImageUrl ? "50%" : "70px",
-          background: `radial-gradient(ellipse at center, rgba(0, 150, 255, ${
-            glowIntensity * 0.4
-          }) 0%, transparent 70%)`,
+          inset: "-50%", // Oversize to cover rotation
+          width: "200%",
+          height: "200%",
+          background: `
+            conic-gradient(
+              from ${raysRotation}deg at 50% 50%, 
+              transparent 0deg, 
+              rgba(0, 100, 255, 0.03) 15deg, 
+              transparent 30deg, 
+              rgba(0, 150, 255, 0.05) 50deg, 
+              transparent 70deg,
+              rgba(0, 100, 255, 0.04) 90deg,
+              transparent 120deg,
+              rgba(0, 150, 255, 0.06) 160deg,
+              transparent 200deg
+            )
+          `,
           filter: "blur(40px)",
+          mixBlendMode: "screen",
+          opacity: 0.8,
         }}
       />
 
-      {/* Conditional: Product Image OR Phone Silhouette */}
-      {productImageUrl ? (
-        /* Product Image (shown directly when productImageUrl is provided) */
+      {/* Main container */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity,
+          transform: `translateY(${floatY}px) scale(${revealScale})`,
+          width: "100%",
+          height: "100%",
+          position: "relative",
+        }}
+      >
+        {/* Floor Reflection (Blurred duplicate flipped) */}
+        {!productImageUrl && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "5%",
+              left: "50%",
+              transform: "translateX(-50%) scaleY(-1) translateY(45%)", // Flip and position below
+              width: "380px",
+              height: "750px",
+              background: "linear-gradient(180deg, #0a0a12 0%, #08080f 100%)",
+              borderRadius: "52px",
+              opacity: 0.15,
+              filter: "blur(20px)",
+              zIndex: 0,
+            }}
+          />
+        )}
+
+        {/* Multi-layered radial glow effects (Behind Phone) */}
         <div
           style={{
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            zIndex: 10,
+            position: "absolute",
+            width: "900px", // UPSCALE: Wider glow
+            height: "1000px",
+            background: `radial-gradient(ellipse at center, 
+              rgba(0, 150, 255, ${0.2 * glowPulse1}) 0%, 
+              rgba(10, 30, 80, 0) 60%)`,
+            filter: "blur(80px)",
+            mixBlendMode: "screen",
           }}
-        >
-          {/* Product image with glow effect */}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            width: "500px",
+            height: "800px",
+            background: `radial-gradient(ellipse at center, 
+              rgba(50, 180, 255, ${0.3 * glowPulse2}) 0%, 
+              transparent 70%)`,
+            filter: "blur(50px)",
+            mixBlendMode: "color-dodge", // Intense core
+          }}
+        />
+
+        {/* Conditional: Product Image OR Phone Silhouette */}
+        {productImageUrl ? (
+          /* Product Image Display */
           <div
             style={{
               position: "relative",
-              maxWidth: "500px",
-              maxHeight: "600px",
+              zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
             }}
           >
-            {/* Glow behind image */}
-            <div
-              style={{
-                position: "absolute",
-                inset: "-40px",
-                background: `radial-gradient(ellipse at center, rgba(0, 150, 255, ${
-                  glowIntensity * 0.5
-                }) 0%, transparent 70%)`,
-                filter: "blur(30px)",
-              }}
-            />
             <img
               src={productImageUrl}
               alt="Product"
               style={{
-                position: "relative",
-                width: "100%",
-                height: "auto",
-                maxHeight: "600px",
+                maxWidth: "450px", // UPSCALE: 380px -> 450px
+                maxHeight: "650px",
                 objectFit: "contain",
-                opacity: interpolate(frame, [10, 40], [0, 1], {
-                  extrapolateRight: "clamp",
-                }),
-                transform: `scale(${interpolate(frame, [10, 40], [0.85, 1], {
-                  extrapolateRight: "clamp",
-                })})`,
-                filter: `drop-shadow(0 20px 60px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 40px rgba(0, 150, 255, ${
-                  glowIntensity * 0.4
+                filter: `drop-shadow(0 0 60px rgba(0, 150, 255, ${
+                  glowPulse1 * 0.5
                 }))`,
-                borderRadius: "20px",
+                transform: "perspective(1000px) rotateY(-5deg)", // Subtle 3D turn
               }}
             />
           </div>
-
-          {/* Phone name text */}
-          <p
-            style={{
-              marginTop: "50px",
-              fontSize: "42px",
-              fontWeight: "600",
-              color: "rgba(255,255,255,0.95)",
-              letterSpacing: "8px",
-              textTransform: "uppercase",
-              textShadow: `0 0 40px rgba(0, 150, 255, ${glowIntensity})`,
-              fontFamily: "sans-serif",
-            }}
-          >
-            {phoneName}
-          </p>
-        </div>
-      ) : (
-        /* Phone Silhouette (shown when no product image) */
-        <>
+        ) : (
+          /* Phone Silhouette with glowing screen */
           <div
             style={{
               position: "relative",
-              width: "340px",
-              height: "720px",
-              borderRadius: "56px",
-              background: "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)",
-              border: "5px solid rgba(255,255,255,0.2)",
+              width: "380px", // UPSCALE: 320px -> 380px
+              height: "780px", // UPSCALE: 680px -> 780px
+              borderRadius: "60px",
+              background: "linear-gradient(180deg, #0a0a12 0%, #08080f 100%)",
+              border: "4px solid rgba(80, 160, 255, 0.4)",
               boxShadow: `
-                0 0 100px rgba(0, 150, 255, ${glowIntensity}),
-                0 0 50px rgba(0, 200, 255, ${glowIntensity * 0.5}),
-                0 40px 80px rgba(0,0,0,0.6),
-                inset 0 1px 0 rgba(255,255,255,0.15)
+                0 0 100px rgba(0, 150, 255, ${glowPulse1 * 0.6}),
+                inset 0 0 40px rgba(0, 100, 255, 0.2)
               `,
               overflow: "hidden",
               zIndex: 10,
             }}
           >
-            {/* Camera module */}
+            {/* Notch/Dynamic Island */}
             <div
               style={{
                 position: "absolute",
-                top: "24px",
+                top: "18px",
                 left: "50%",
                 transform: "translateX(-50%)",
-                width: "120px",
-                height: "120px",
-                borderRadius: "32px",
-                background: "linear-gradient(145deg, #0f0f1a 0%, #1a1a2e 100%)",
-                border: "3px solid rgba(255,255,255,0.15)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                boxShadow: "inset 0 3px 6px rgba(0,0,0,0.5)",
+                width: "36px",
+                height: "36px",
+                borderRadius: "24px",
+                background: "#000",
+                zIndex: 20,
               }}
-            >
-              {/* Main camera lens */}
-              <div
-                style={{
-                  width: "54px",
-                  height: "54px",
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle, #1e4a6f 0%, #0a1929 70%)",
-                  border: "4px solid rgba(0, 180, 255, 0.6)",
-                  boxShadow: `
-                    inset 0 0 20px rgba(0, 150, 255, 0.4),
-                    0 0 15px rgba(0, 150, 255, ${glowIntensity * 0.5})
-                  `,
-                }}
-              />
-              {/* Secondary lens */}
-              <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle, #2a2a4a 0%, #0a0a1a 70%)",
-                  border: "2px solid rgba(255,255,255,0.2)",
-                }}
-              />
-            </div>
+            />
 
-            {/* Screen area with glow */}
+            {/* Screen area with spiraling glow animation */}
             <div
               style={{
                 position: "absolute",
-                top: "165px",
-                left: "14px",
-                right: "14px",
-                bottom: "28px",
-                borderRadius: "44px",
-                background: "linear-gradient(180deg, #0a0a15 0%, #12121f 100%)",
+                top: "10px",
+                left: "10px",
+                right: "10px",
+                bottom: "10px",
+                borderRadius: "50px",
+                background: "#050508",
                 overflow: "hidden",
-                boxShadow: "inset 0 0 30px rgba(0,0,0,0.5)",
+                boxShadow: "inset 0 0 20px rgba(0,0,0,0.8)",
               }}
             >
-              {/* Screen content glow */}
+              {/* High-res Spiraling effect */}
               <div
                 style={{
                   position: "absolute",
-                  inset: 0,
-                  background: `radial-gradient(ellipse at 50% 30%, rgba(0, 180, 255, ${
-                    glowIntensity * 0.5 * screenPulse
-                  }) 0%, transparent 60%)`,
+                  inset: "-50%",
+                  width: "200%",
+                  height: "200%",
+                  background: `
+                    conic-gradient(
+                      from ${spiralRotation}deg at 50% 50%,
+                      rgba(0, 150, 255, 0) 0deg,
+                      rgba(0, 150, 255, 0.5) 40deg,
+                      rgba(50, 200, 255, 0.8) 50deg, /* Sharp highlight */
+                      rgba(0, 150, 255, 0.1) 100deg,
+                      rgba(0, 150, 255, 0) 180deg,
+                      rgba(0, 100, 255, 0.3) 270deg,
+                      rgba(0, 150, 255, 0) 360deg
+                    )
+                  `,
+                  opacity: glowPulse1,
+                  mixBlendMode: "screen",
+                  filter: "blur(5px)", // Less blur for sharper detail
                 }}
               />
-              {/* UI elements hint */}
+
+              {/* Offset chromatic aberration effect (Cyan layer) */}
               <div
                 style={{
                   position: "absolute",
-                  top: "24px",
-                  left: "24px",
-                  right: "24px",
-                  height: "14px",
-                  borderRadius: "7px",
-                  background: "rgba(255,255,255,0.12)",
+                  inset: "-50%",
+                  width: "200%",
+                  height: "200%",
+                  background: `
+                     conic-gradient(from ${
+                       spiralRotation + 5
+                     }deg at 52% 50%, transparent, cyan, transparent)
+                  `,
+                  mixBlendMode: "screen",
+                  opacity: 0.3,
+                  filter: "blur(8px)",
                 }}
               />
+
+              {/* Center Core Glow */}
               <div
                 style={{
                   position: "absolute",
-                  top: "52px",
-                  left: "24px",
-                  width: "60%",
-                  height: "10px",
-                  borderRadius: "5px",
-                  background: "rgba(255,255,255,0.08)",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "180px",
+                  height: "180px",
+                  borderRadius: "50%",
+                  background: `radial-gradient(circle, 
+                    rgba(200, 240, 255, ${0.9 * glowPulse1}) 0%, 
+                    rgba(0, 150, 255, 0.4) 40%,
+                    transparent 70%)`,
+                  filter: "blur(25px)",
+                  mixBlendMode: "add",
                 }}
               />
             </div>
-
-            {/* Edge highlight sweep */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: `${sweepPosition}%`,
-                width: "40px",
-                height: "100%",
-                background:
-                  "linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)",
-                transform: "skewX(-20deg)",
-              }}
-            />
-
-            {/* Top edge highlight */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "2px",
-                background:
-                  "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
-              }}
-            />
           </div>
-
-          {/* Phone name text */}
-          <p
-            style={{
-              marginTop: "50px",
-              fontSize: "42px",
-              fontWeight: "600",
-              color: "rgba(255,255,255,0.95)",
-              letterSpacing: "8px",
-              textTransform: "uppercase",
-              textShadow: `0 0 40px rgba(0, 150, 255, ${glowIntensity})`,
-              fontFamily: "sans-serif",
-              zIndex: 10,
-            }}
-          >
-            {phoneName}
-          </p>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </AbsoluteFill>
   );
 };

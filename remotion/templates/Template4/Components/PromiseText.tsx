@@ -10,14 +10,6 @@ import {
 // The promise text split into words for staggered animation
 const PROMISE_WORDS = ["A", "phone", "that", "just", "keeps", "going."];
 
-// Floating orbs for background ambiance
-const FLOATING_ORBS = [
-  { x: 15, y: 25, size: 120, delay: 0, color: "rgba(0, 100, 255, 0.08)" },
-  { x: 80, y: 70, size: 180, delay: 10, color: "rgba(0, 150, 255, 0.06)" },
-  { x: 60, y: 20, size: 100, delay: 20, color: "rgba(100, 180, 255, 0.05)" },
-  { x: 25, y: 75, size: 140, delay: 15, color: "rgba(0, 120, 255, 0.07)" },
-];
-
 interface WordProps {
   word: string;
   index: number;
@@ -33,7 +25,7 @@ const AnimatedWord: React.FC<WordProps> = ({
   fps,
   totalWords,
 }) => {
-  const delay = index * 8; // Stagger each word by 8 frames
+  const delay = index * 5; // Faster stagger
   const adjustedFrame = Math.max(0, frame - delay);
 
   // Spring animation for each word
@@ -43,33 +35,25 @@ const AnimatedWord: React.FC<WordProps> = ({
     config: { damping: 12, stiffness: 100, mass: 0.6 },
   });
 
-  // Word reveal animations
-  const opacity = interpolate(adjustedFrame, [0, 15], [0, 1], {
+  const translateY = interpolate(wordSpring, [0, 1], [20, 0]);
+  const opacity = interpolate(adjustedFrame, [0, 10], [0, 1], {
     extrapolateRight: "clamp",
   });
 
-  const translateY = interpolate(wordSpring, [0, 1], [40, 0]);
-  const scale = interpolate(wordSpring, [0, 1], [0.7, 1]);
-
-  // Subtle glow pulse for emphasized words
   const isEmphasized = word === "keeps" || word === "going.";
-  const glowIntensity = isEmphasized
-    ? interpolate(Math.sin((frame + index * 10) * 0.06), [-1, 1], [0.3, 0.8])
-    : 0.2;
 
   return (
     <span
       style={{
         display: "inline-block",
         opacity,
-        transform: `translateY(${translateY}px) scale(${scale})`,
+        transform: `translateY(${translateY}px)`,
         marginRight: index < totalWords - 1 ? "18px" : "0",
-        color: isEmphasized
-          ? "rgba(100, 220, 255, 1)"
-          : "rgba(255, 255, 255, 0.95)",
-        textShadow: isEmphasized
-          ? `0 0 40px rgba(0, 180, 255, ${glowIntensity}), 0 4px 20px rgba(0, 100, 255, 0.4)`
-          : "0 4px 30px rgba(0, 0, 0, 0.3)",
+        // Blue text for emphasis, Dark Gray for normal
+        color: isEmphasized ? "#0266b8" : "#1F2937",
+        fontWeight: isEmphasized ? "800" : "600",
+        // Simple elegant text shadow
+        textShadow: "0 1px 2px rgba(0,0,0,0.1)",
       }}
     >
       {word}
@@ -81,169 +65,129 @@ export const PromiseText: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Overall scene opacity
+  // Banner Entrance Expansion (Left to Right)
+  const expandSpring = spring({
+    frame: frame - 5,
+    fps,
+    config: { damping: 20, stiffness: 60, mass: 1 },
+  });
+
+  const widthPercentage = interpolate(expandSpring, [0, 1], [0, 100]);
+  const contentOpacity = interpolate(expandSpring, [0.3, 1], [0, 1]);
+
+  // Scene Opacity
   const sceneOpacity = interpolate(frame, [0, 20, 180, 210], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Animated underline
-  const underlineWidth = interpolate(frame, [60, 120], [0, 400], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const underlineOpacity = interpolate(frame, [60, 80], [0, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  // Glow pulse for background elements
-  const glowPulse = interpolate(Math.sin(frame * 0.05), [-1, 1], [0.5, 1]);
-
   return (
     <AbsoluteFill style={{ opacity: sceneOpacity }}>
-      {/* Floating ambient orbs */}
-      {FLOATING_ORBS.map((orb, i) => {
-        const adjustedFrame = Math.max(0, frame - orb.delay);
-        const orbOpacity = interpolate(adjustedFrame, [0, 30], [0, 1], {
-          extrapolateRight: "clamp",
-        });
-        const floatY = interpolate(
-          Math.sin((frame + orb.delay * 3) * 0.02),
-          [-1, 1],
-          [-30, 30]
-        );
-        const floatX = interpolate(
-          Math.cos((frame + orb.delay * 2) * 0.015),
-          [-1, 1],
-          [-20, 20]
-        );
-        const orbScale = interpolate(
-          Math.sin((frame + orb.delay) * 0.03),
-          [-1, 1],
-          [0.9, 1.1]
-        );
-
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: `${orb.x}%`,
-              top: `${orb.y}%`,
-              width: orb.size,
-              height: orb.size,
-              borderRadius: "50%",
-              background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
-              transform: `translate(${floatX}px, ${floatY}px) scale(${orbScale})`,
-              filter: "blur(40px)",
-              opacity: orbOpacity * glowPulse,
-            }}
-          />
-        );
-      })}
-
-      {/* Flowing gradient lines */}
-      {[0, 1, 2, 3].map((i) => {
-        const yPos = interpolate((frame + i * 50) % 240, [0, 240], [120, -20]);
-        const lineOpacity = interpolate(frame, [10, 40], [0, 0.3 - i * 0.06], {
-          extrapolateRight: "clamp",
-        });
-
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: "-10%",
-              right: "-10%",
-              top: `${yPos}%`,
-              height: "1px",
-              background: `linear-gradient(90deg, transparent 0%, rgba(0, 180, 255, ${
-                0.4 - i * 0.08
-              }) 50%, transparent 100%)`,
-              opacity: lineOpacity,
-              filter: "blur(1px)",
-            }}
-          />
-        );
-      })}
-
-      {/* Center content container */}
+      {/* Banner Container - Bottom Centered (Lower Third) */}
       <div
         style={{
           position: "absolute",
-          inset: 0,
+          bottom: "100px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "90%",
+          maxWidth: "1200px",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
           justifyContent: "center",
+          overflow: "hidden",
+          borderRadius: "60px",
         }}
       >
-        {/* Main promise text with staggered words */}
+        {/* Main Glass Banner */}
         <div
           style={{
-            textAlign: "center",
-            padding: "0 80px",
+            position: "relative",
+            width: `${widthPercentage}%`,
+            height: "180px", // Slightly taller for promise text
+            // EXACT ContextLayer Styling
+            background:
+              "linear-gradient(180deg, rgba(235, 240, 245, 0.7) 0%, rgba(220, 230, 240, 0.5) 100%)",
+            backdropFilter: "blur(40px)",
+            WebkitBackdropFilter: "blur(40px)",
+            borderRadius: "60px",
+            border: "1px solid rgba(255, 255, 255, 0.8)",
+            boxShadow: `
+              0 20px 50px rgba(0, 0, 0, 0.1),
+              inset 0 0 0 2px rgba(255, 255, 255, 0.5)
+            `,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column", // Stack tagline if needed, but keeping simple for now
+            gap: "10px",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            margin: "0 auto",
           }}
         >
-          <p
+          {/* Content */}
+          <div
             style={{
-              fontSize: "56px",
-              fontWeight: "600",
-              lineHeight: 1.4,
-              fontFamily: "sans-serif",
-              margin: 0,
+              opacity: contentOpacity,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
             }}
           >
-            {PROMISE_WORDS.map((word, index) => (
-              <AnimatedWord
-                key={index}
-                word={word}
-                index={index}
-                frame={frame}
-                fps={fps}
-                totalWords={PROMISE_WORDS.length}
-              />
-            ))}
-          </p>
+            <p
+              style={{
+                fontSize: "56px",
+                fontFamily:
+                  "sf pro display, -apple-system, blinkmacsystemfont, segoe ui, roboto, helvetica, arial, sans-serif",
+                margin: 0,
+                letterSpacing: "-1px",
+              }}
+            >
+              {PROMISE_WORDS.map((word, index) => (
+                <AnimatedWord
+                  key={index}
+                  word={word}
+                  index={index}
+                  frame={frame}
+                  fps={fps}
+                  totalWords={PROMISE_WORDS.length}
+                />
+              ))}
+            </p>
+
+            {/* Tagline */}
+            <div
+              style={{
+                marginTop: "12px",
+                fontSize: "18px",
+                fontWeight: "500",
+                color: "rgba(0,0,0,0.5)",
+                letterSpacing: "4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Unstoppable Performance
+            </div>
+          </div>
+
+          {/* Sheen animation */}
+          <div
+            style={{
+              position: "absolute",
+              top: "0",
+              left: "0",
+              width: "100%",
+              height: "100%",
+              background:
+                "linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.6) 50%, transparent 60%)",
+              transform: `translateX(${interpolate(
+                frame,
+                [20, 80],
+                [-100, 100]
+              )}%)`,
+            }}
+          />
         </div>
-
-        {/* Animated underline */}
-        <div
-          style={{
-            width: underlineWidth,
-            height: "3px",
-            background: `linear-gradient(90deg, transparent, rgba(0, 180, 255, ${
-              glowPulse * 0.8
-            }), transparent)`,
-            marginTop: "32px",
-            borderRadius: "2px",
-            opacity: underlineOpacity,
-            boxShadow: `0 0 20px rgba(0, 150, 255, ${glowPulse * 0.5})`,
-          }}
-        />
-
-        {/* Subtle tagline */}
-        <p
-          style={{
-            fontSize: "20px",
-            fontWeight: "400",
-            color: "rgba(255, 255, 255, 0.5)",
-            letterSpacing: "6px",
-            textTransform: "uppercase",
-            fontFamily: "sans-serif",
-            marginTop: "40px",
-            opacity: interpolate(frame, [90, 120], [0, 1], {
-              extrapolateRight: "clamp",
-            }),
-            transform: `translateY(${interpolate(frame, [90, 120], [20, 0], {
-              extrapolateRight: "clamp",
-            })}px)`,
-          }}
-        >
-          Unstoppable Performance
-        </p>
       </div>
     </AbsoluteFill>
   );
