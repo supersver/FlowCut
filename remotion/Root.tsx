@@ -1,5 +1,5 @@
 import React from "react";
-import { Composition, registerRoot } from "remotion";
+import { Composition, registerRoot, staticFile } from "remotion";
 import { Template1 } from "./templates/Template1";
 import { Template2 } from "./templates/Template2";
 import { Template3 } from "./templates/Template3";
@@ -69,8 +69,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           recipientName: "Mayank",
           phoneName: "Vivo X200",
-          presenterVideoUrl:
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // Placeholder for verification
+          presenterVideoUrl: staticFile("presenter-video.mp4"),
           customClips: [],
         }}
       />

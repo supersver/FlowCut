@@ -179,12 +179,13 @@ async function render() {
       console.error(`[Render] Bundle created at: ${bundleLocation}`);
     }
 
-    // Get composition
+    // Get composition with extended timeout
     console.error("[Render] Selecting composition...");
     const composition = await selectComposition({
       serveUrl: bundleLocation,
       id: templateId,
       inputProps: props,
+      timeoutInMilliseconds: 120000, // 2 minutes timeout for slow systems
     });
     console.error(`[Render] Composition selected: ${composition.id}`);
 
@@ -209,6 +210,16 @@ async function render() {
       outputLocation: outputPath,
       inputProps: props,
       concurrency,
+      // Encoding optimizations for faster rendering
+      x264Preset: "faster", // Options: ultrafast, superfast, veryfast, faster, fast, medium
+      crf: 23, // Lower = better quality but slower (18-28 is good range, 23 is balanced)
+      // Mute audio if not needed for faster encoding
+      muted: false,
+      // Use faster pixel format
+      pixelFormat: "yuv420p",
+      // Extended timeouts for slow systems
+      timeoutInMilliseconds: 120000, // 2 minutes for browser operations
+      delayRenderTimeoutInMilliseconds: 60000, // 1 minute for delayRender calls
       onProgress: ({ progress }) => {
         console.error(`[Render] Progress: ${Math.round(progress * 100)}%`);
       },

@@ -4,8 +4,9 @@ import {
   useCurrentFrame,
   interpolate,
   Sequence,
-  Video,
+  OffthreadVideo,
   Audio,
+  staticFile,
 } from "remotion";
 import { IntroPresenter } from "./Template4/Components/IntroPresenter";
 import { ContextLayer } from "./Template4/Components/ContextLayer";
@@ -70,6 +71,92 @@ export const Template4: React.FC<Template4Props> = ({
   const finalGlobalVideoOpacity = frame < 90 ? introOpacity : presenterOpacity;
   const finalGlobalVideoScale = frame < 90 ? introScale : 1;
 
+  // ============================================
+  // CAPTIONS DATA (from template-4-CC.srt at 30fps)
+  // ============================================
+  const captions = [
+    {
+      startFrame: 3,
+      endFrame: 75,
+      text: "Hey Mayank, quick heads up before we go",
+    },
+    {
+      startFrame: 75,
+      endFrame: 130,
+      text: "live. You're probably on your phone",
+    },
+    {
+      startFrame: 130,
+      endFrame: 202,
+      text: "most of the day. Work calls, messages, a",
+    },
+    {
+      startFrame: 202,
+      endFrame: 283,
+      text: "bunch of apps open. Your day is heavy. So",
+    },
+    {
+      startFrame: 283,
+      endFrame: 355,
+      text: "we're working on something to fix that. A",
+    },
+    {
+      startFrame: 355,
+      endFrame: 410,
+      text: "phone that just keeps going without",
+    },
+    {
+      startFrame: 410,
+      endFrame: 491,
+      text: "you having to slow down. A new Vivo X300",
+    },
+    {
+      startFrame: 491,
+      endFrame: 563,
+      text: "doesn't just keep up, it leads. Want to",
+    },
+    {
+      startFrame: 563,
+      endFrame: 636,
+      text: "see it first? Just respond with yes to",
+    },
+    { startFrame: 636, endFrame: 654, text: "this message." },
+  ];
+
+  // Get current caption based on frame
+  const currentCaption = captions.find(
+    (cap) => frame >= cap.startFrame && frame < cap.endFrame
+  );
+
+  // Caption fade animation
+  const getCaptionOpacity = () => {
+    if (!currentCaption) return 0;
+    const fadeInEnd = currentCaption.startFrame + 5;
+    const fadeOutStart = currentCaption.endFrame - 5;
+
+    if (frame < fadeInEnd) {
+      return interpolate(
+        frame,
+        [currentCaption.startFrame, fadeInEnd],
+        [0, 1],
+        {
+          extrapolateRight: "clamp",
+        }
+      );
+    }
+    if (frame > fadeOutStart) {
+      return interpolate(
+        frame,
+        [fadeOutStart, currentCaption.endFrame],
+        [1, 0],
+        {
+          extrapolateRight: "clamp",
+        }
+      );
+    }
+    return 1;
+  };
+
   return (
     <AbsoluteFill style={{ background: "#0a0a15" }}>
       {/* Background Music */}
@@ -126,7 +213,7 @@ export const Template4: React.FC<Template4Props> = ({
         }}
       >
         {presenterVideoUrl ? (
-          <Video
+          <OffthreadVideo
             src={presenterVideoUrl}
             style={{
               width: "100%",
@@ -221,7 +308,53 @@ export const Template4: React.FC<Template4Props> = ({
       {/* Scene 4: Soft Reveal + Tease (420-540 frames) */}
       <Sequence from={420} durationInFrames={120} style={{ zIndex: 10 }}>
         {/* Note: Presenter is hidden by global opacity logic during this time */}
-        <PhoneTease phoneName={phoneName} productImageUrl={productImageUrl} />
+
+        {/* TEMPORARY: Fullscreen product image with soft reveal */}
+        {(() => {
+          // Scene starts at frame 420, so we use relative frame for animation
+          const sceneFrame = frame - 420;
+
+          // Fade in over first 20 frames
+          const opacity = interpolate(sceneFrame, [0, 20], [0, 1], {
+            extrapolateRight: "clamp",
+          });
+
+          // Subtle scale animation (start slightly zoomed, ease to normal)
+          const scale = interpolate(sceneFrame, [0, 60], [1.05, 1], {
+            extrapolateRight: "clamp",
+          });
+
+          // Subtle vertical drift (start slightly lower, rise up)
+          const translateY = interpolate(sceneFrame, [0, 40], [20, 0], {
+            extrapolateRight: "clamp",
+          });
+
+          return (
+            <AbsoluteFill
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#0a0a15",
+                opacity,
+              }}
+            >
+              <img
+                src={staticFile("product-image.jpg")}
+                alt="Product"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  transform: `scale(${scale}) translateY(${translateY}px)`,
+                }}
+              />
+            </AbsoluteFill>
+          );
+        })()}
+
+        {/* ORIGINAL PhoneTease - commented out temporarily */}
+        {/* <PhoneTease phoneName={phoneName} productImageUrl={productImageUrl} /> */}
 
         {/* Small PiP Presenter specific to this scene */}
         {/* {presenterVideoUrl && (
@@ -257,14 +390,56 @@ export const Template4: React.FC<Template4Props> = ({
       </Sequence>
 
       {/* Scene 5: Reply-Based CTA (540-660 frames) */}
-      <Sequence from={540} durationInFrames={120} style={{ zIndex: 10 }}>
+      <Sequence from={540} durationInFrames={110} style={{ zIndex: 10 }}>
         <WhatsAppCTA replyText="YES" />
       </Sequence>
 
       {/* Scene 6: Human Sign-Off (660-end frames) */}
-      <Sequence from={660} durationInFrames={90} style={{ zIndex: 10 }}>
+      {/* <Sequence from={660} durationInFrames={90} style={{ zIndex: 10 }}>
         <Outro />
-      </Sequence>
+      </Sequence> */}
+
+      {/* ============================================ */}
+      {/* CAPTIONS OVERLAY */}
+      {/* ============================================ */}
+      {currentCaption && (
+        <div
+          style={{
+            position: "absolute",
+            // Caption at 310px during Intro (0-90) and Promise (210-420), lower at 100px otherwise
+            bottom:
+              frame < 90 || (frame >= 210 && frame < 420) ? "310px" : "100px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 200,
+            opacity: getCaptionOpacity(),
+            maxWidth: "90%",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              //   background: "rgba(0, 0, 0, 0.7)",
+              padding: "16px 32px",
+              borderRadius: "12px",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <span
+              style={{
+                color: "#ffffff",
+                fontSize: "44px",
+                fontWeight: 600,
+                fontFamily: "'Inter', 'Segoe UI', sans-serif",
+                lineHeight: 1.4,
+                textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              }}
+            >
+              {currentCaption.text}
+            </span>
+          </div>
+        </div>
+      )}
     </AbsoluteFill>
   );
 };
