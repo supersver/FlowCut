@@ -23,6 +23,21 @@ interface CustomClip {
   type: "image" | "video";
 }
 
+interface CaptionItem {
+  id: string;
+  startFrame: number;
+  endFrame: number;
+  text: string;
+}
+
+interface CaptionSettings {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  position: "top" | "center" | "bottom";
+}
+
 interface Template4Props {
   recipientName: string;
   phoneName: string;
@@ -32,6 +47,9 @@ interface Template4Props {
   customClips?: CustomClip[];
   musicUrl?: string;
   musicVolume?: number;
+  captions?: CaptionItem[];
+  captionSettings?: CaptionSettings;
+  usePhoneTease?: boolean;
 }
 
 export const Template4: React.FC<Template4Props> = ({
@@ -42,7 +60,10 @@ export const Template4: React.FC<Template4Props> = ({
   logoUrl,
   customClips = [],
   musicUrl,
-  musicVolume = 0.1, // Default low music volume to prioritize voice
+  musicVolume = 0.1,
+  captions: captionsProp,
+  captionSettings: captionSettingsProp,
+  usePhoneTease = true,
 }) => {
   const frame = useCurrentFrame();
 
@@ -72,56 +93,96 @@ export const Template4: React.FC<Template4Props> = ({
   const finalGlobalVideoScale = frame < 90 ? introScale : 1;
 
   // ============================================
-  // CAPTIONS DATA (from template-4-CC.srt at 30fps)
+  // CAPTIONS LOGIC
   // ============================================
-  const captions = [
+  // Default captions (fallback if none provided via props)
+  const defaultCaptions = [
     {
+      id: "1",
       startFrame: 3,
       endFrame: 75,
       text: "Hey Mayank, quick heads up before we go",
     },
     {
+      id: "2",
       startFrame: 75,
       endFrame: 130,
       text: "live. You're probably on your phone",
     },
     {
+      id: "3",
       startFrame: 130,
       endFrame: 202,
       text: "most of the day. Work calls, messages, a",
     },
     {
+      id: "4",
       startFrame: 202,
       endFrame: 283,
       text: "bunch of apps open. Your day is heavy. So",
     },
     {
+      id: "5",
       startFrame: 283,
       endFrame: 355,
       text: "we're working on something to fix that. A",
     },
     {
+      id: "6",
       startFrame: 355,
       endFrame: 410,
       text: "phone that just keeps going without",
     },
     {
+      id: "7",
       startFrame: 410,
       endFrame: 491,
       text: "you having to slow down. A new Vivo X300",
     },
     {
+      id: "8",
       startFrame: 491,
       endFrame: 563,
       text: "doesn't just keep up, it leads. Want to",
     },
     {
+      id: "9",
       startFrame: 563,
       endFrame: 636,
       text: "see it first? Just respond with yes to",
     },
-    { startFrame: 636, endFrame: 654, text: "this message." },
+    { id: "10", startFrame: 636, endFrame: 654, text: "this message." },
   ];
+
+  // Use props captions if provided, otherwise use defaults
+  const captions =
+    captionsProp && captionsProp.length > 0 ? captionsProp : defaultCaptions;
+
+  // Caption settings with defaults
+  const captionSettings: CaptionSettings = {
+    fontFamily: captionSettingsProp?.fontFamily || "Inter",
+    fontSize: captionSettingsProp?.fontSize || 44,
+    color: captionSettingsProp?.color || "#ffffff",
+    backgroundColor:
+      captionSettingsProp?.backgroundColor || "rgba(0, 0, 0, 0.7)",
+    position: captionSettingsProp?.position || "bottom",
+  };
+
+  // Get caption position in pixels
+  const getCaptionPosition = () => {
+    // Adjust position based on scene context
+    const isIntroOrPromise = frame < 90 || (frame >= 210 && frame < 420);
+
+    switch (captionSettings.position) {
+      case "top":
+        return "100px";
+      case "center":
+        return "50%";
+      case "bottom":
+      default:
+        return isIntroOrPromise ? "310px" : "100px";
+    }
+  };
 
   // Get current caption based on frame
   const currentCaption = captions.find(
@@ -309,52 +370,54 @@ export const Template4: React.FC<Template4Props> = ({
       <Sequence from={420} durationInFrames={120} style={{ zIndex: 10 }}>
         {/* Note: Presenter is hidden by global opacity logic during this time */}
 
-        {/* TEMPORARY: Fullscreen product image with soft reveal */}
-        {(() => {
-          // Scene starts at frame 420, so we use relative frame for animation
-          const sceneFrame = frame - 420;
+        {usePhoneTease ? (
+          /* PhoneTease animation */
+          <PhoneTease phoneName={phoneName} productImageUrl={productImageUrl} />
+        ) : (
+          /* Fullscreen product image with soft reveal */
+          (() => {
+            // Scene starts at frame 420, so we use relative frame for animation
+            const sceneFrame = frame - 420;
 
-          // Fade in over first 20 frames
-          const opacity = interpolate(sceneFrame, [0, 20], [0, 1], {
-            extrapolateRight: "clamp",
-          });
+            // Fade in over first 20 frames
+            const opacity = interpolate(sceneFrame, [0, 20], [0, 1], {
+              extrapolateRight: "clamp",
+            });
 
-          // Subtle scale animation (start slightly zoomed, ease to normal)
-          const scale = interpolate(sceneFrame, [0, 60], [1.05, 1], {
-            extrapolateRight: "clamp",
-          });
+            // Subtle scale animation (start slightly zoomed, ease to normal)
+            const scale = interpolate(sceneFrame, [0, 60], [1.05, 1], {
+              extrapolateRight: "clamp",
+            });
 
-          // Subtle vertical drift (start slightly lower, rise up)
-          const translateY = interpolate(sceneFrame, [0, 40], [20, 0], {
-            extrapolateRight: "clamp",
-          });
+            // Subtle vertical drift (start slightly lower, rise up)
+            const translateY = interpolate(sceneFrame, [0, 40], [20, 0], {
+              extrapolateRight: "clamp",
+            });
 
-          return (
-            <AbsoluteFill
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#0a0a15",
-                opacity,
-              }}
-            >
-              <img
-                src={staticFile("product-image.jpg")}
-                alt="Product"
+            return (
+              <AbsoluteFill
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  transform: `scale(${scale}) translateY(${translateY}px)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#0a0a15",
+                  opacity,
                 }}
-              />
-            </AbsoluteFill>
-          );
-        })()}
-
-        {/* ORIGINAL PhoneTease - commented out temporarily */}
-        {/* <PhoneTease phoneName={phoneName} productImageUrl={productImageUrl} /> */}
+              >
+                <img
+                  src={productImageUrl || staticFile("product-image.jpg")}
+                  alt="Product"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    transform: `scale(${scale}) translateY(${translateY}px)`,
+                  }}
+                />
+              </AbsoluteFill>
+            );
+          })()
+        )}
 
         {/* Small PiP Presenter specific to this scene */}
         {/* {presenterVideoUrl && (
@@ -406,11 +469,22 @@ export const Template4: React.FC<Template4Props> = ({
         <div
           style={{
             position: "absolute",
-            // Caption at 310px during Intro (0-90) and Promise (210-420), lower at 100px otherwise
+            // Use dynamic position from settings
             bottom:
-              frame < 90 || (frame >= 210 && frame < 420) ? "310px" : "100px",
+              captionSettings.position === "top"
+                ? undefined
+                : getCaptionPosition(),
+            top:
+              captionSettings.position === "top"
+                ? "100px"
+                : captionSettings.position === "center"
+                ? "50%"
+                : undefined,
             left: "50%",
-            transform: "translateX(-50%)",
+            transform:
+              captionSettings.position === "center"
+                ? "translate(-50%, -50%)"
+                : "translateX(-50%)",
             zIndex: 200,
             opacity: getCaptionOpacity(),
             maxWidth: "90%",
@@ -419,7 +493,7 @@ export const Template4: React.FC<Template4Props> = ({
         >
           <div
             style={{
-              //   background: "rgba(0, 0, 0, 0.7)",
+              background: captionSettings.backgroundColor,
               padding: "16px 32px",
               borderRadius: "12px",
               backdropFilter: "blur(8px)",
@@ -427,10 +501,10 @@ export const Template4: React.FC<Template4Props> = ({
           >
             <span
               style={{
-                color: "#ffffff",
-                fontSize: "44px",
+                color: captionSettings.color,
+                fontSize: `${captionSettings.fontSize}px`,
                 fontWeight: 600,
-                fontFamily: "'Inter', 'Segoe UI', sans-serif",
+                fontFamily: `'${captionSettings.fontFamily}', 'Segoe UI', sans-serif`,
                 lineHeight: 1.4,
                 textShadow: "0 2px 4px rgba(0,0,0,0.3)",
               }}
