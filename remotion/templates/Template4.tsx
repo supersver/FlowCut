@@ -23,6 +23,14 @@ interface CustomClip {
   type: "image" | "video";
 }
 
+interface MusicTrack {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  volume: number;
+}
+
 interface CaptionItem {
   id: string;
   startFrame: number;
@@ -45,8 +53,7 @@ interface Template4Props {
   productImageUrl?: string;
   logoUrl?: string;
   customClips?: CustomClip[];
-  musicUrl?: string;
-  musicVolume?: number;
+  musicTracks?: MusicTrack[];
   captions?: CaptionItem[];
   captionSettings?: CaptionSettings;
   usePhoneTease?: boolean;
@@ -59,8 +66,7 @@ export const Template4: React.FC<Template4Props> = ({
   productImageUrl,
   logoUrl,
   customClips = [],
-  musicUrl,
-  musicVolume = 0.1,
+  musicTracks = [],
   captions: captionsProp,
   captionSettings: captionSettingsProp,
   usePhoneTease = true,
@@ -220,8 +226,16 @@ export const Template4: React.FC<Template4Props> = ({
 
   return (
     <AbsoluteFill style={{ background: "#0a0a15" }}>
-      {/* Background Music */}
-      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+      {/* Background Music Tracks - with proper timing */}
+      {musicTracks.map((track) => (
+        <Sequence
+          key={track.id}
+          from={track.startFrame}
+          durationInFrames={track.endFrame - track.startFrame}
+        >
+          <Audio src={track.url} volume={track.volume} />
+        </Sequence>
+      ))}
 
       {/* ============================================ */}
       {/* GLOBAL LAYERS */}

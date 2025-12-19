@@ -35,6 +35,14 @@ interface CustomClip {
   type: "image" | "video";
 }
 
+interface MusicTrack {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  volume: number;
+}
+
 // Shared props interface for all templates
 interface TemplateProps {
   productImages: string[];
@@ -108,9 +116,8 @@ export default function Home() {
     DEFAULT_CAPTION_SETTINGS
   );
   const [usePhoneTease, setUsePhoneTease] = useState(true);
-  // Music settings
-  const [musicUrl, setMusicUrl] = useState("");
-  const [musicVolume, setMusicVolume] = useState(0.5);
+  // Music tracks (supports multiple)
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [fps, setFps] = useState(FPS_OPTIONS[1]); // Default to 30 fps
   const [isExporting, setIsExporting] = useState(false);
@@ -204,8 +211,28 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (file) {
       const url = await fileToBase64(file);
-      setMusicUrl(url);
+      const newTrack: MusicTrack = {
+        id: `music-${Date.now()}-${Math.random()}`,
+        url,
+        startFrame: 0,
+        endFrame: selectedTemplate.duration,
+        volume: 0.5,
+      };
+      setMusicTracks((prev) => [...prev, newTrack]);
     }
+  };
+
+  const updateMusicTrack = (
+    id: string,
+    updates: Partial<Omit<MusicTrack, "id" | "url">>
+  ) => {
+    setMusicTracks((prev) =>
+      prev.map((track) => (track.id === id ? { ...track, ...updates } : track))
+    );
+  };
+
+  const removeMusicTrack = (id: string) => {
+    setMusicTracks((prev) => prev.filter((track) => track.id !== id));
   };
 
   const handleCustomClipUpload = async (
@@ -309,8 +336,7 @@ export default function Home() {
                   productImageUrl,
                   logoUrl,
                   customClips,
-                  musicUrl,
-                  musicVolume,
+                  musicTracks,
                   captions,
                   captionSettings,
                   usePhoneTease,
@@ -321,8 +347,7 @@ export default function Home() {
                   reviewAuthor,
                   rating,
                   customClips,
-                  musicUrl,
-                  musicVolume,
+                  musicTracks,
                 },
         }),
       });
@@ -650,8 +675,7 @@ export default function Home() {
                         productImageUrl,
                         logoUrl,
                         customClips,
-                        musicUrl,
-                        musicVolume,
+                        musicTracks,
                         captions,
                         captionSettings,
                         usePhoneTease,
@@ -662,8 +686,7 @@ export default function Home() {
                         reviewAuthor,
                         rating,
                         customClips,
-                        musicUrl,
-                        musicVolume,
+                        musicTracks,
                       }
                 }
                 style={{ width: "100%", height: "100%" }}
@@ -954,11 +977,10 @@ export default function Home() {
           customClips={customClips}
           onSeek={handleSeek}
           onClipUpdate={updateClipTiming}
-          musicUrl={musicUrl}
-          musicVolume={musicVolume}
+          musicTracks={musicTracks}
           onMusicUpload={handleMusicUpload}
-          onMusicVolumeChange={setMusicVolume}
-          onMusicRemove={() => setMusicUrl("")}
+          onMusicTrackUpdate={updateMusicTrack}
+          onMusicTrackRemove={removeMusicTrack}
         />
       </div>
     </div>

@@ -19,14 +19,21 @@ interface CustomClip {
   type: "image" | "video";
 }
 
+interface MusicTrack {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  volume: number;
+}
+
 interface Template2Props {
   productImages: string[];
   reviewText: string;
   reviewAuthor: string;
   rating: number;
   customClips?: CustomClip[];
-  musicUrl?: string;
-  musicVolume?: number;
+  musicTracks?: MusicTrack[];
 }
 
 export const Template2: React.FC<Template2Props> = ({
@@ -35,8 +42,7 @@ export const Template2: React.FC<Template2Props> = ({
   reviewAuthor,
   rating,
   customClips = [],
-  musicUrl,
-  musicVolume = 0.5,
+  musicTracks = [],
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -143,8 +149,16 @@ export const Template2: React.FC<Template2Props> = ({
         background: `linear-gradient(${gradientRotate}deg, #059669, #0D9488, #0891B2)`,
       }}
     >
-      {/* Background Music */}
-      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+      {/* Background Music Tracks - with proper timing */}
+      {musicTracks.map((track) => (
+        <Sequence
+          key={track.id}
+          from={track.startFrame}
+          durationInFrames={track.endFrame - track.startFrame}
+        >
+          <Audio src={track.url} volume={track.volume} />
+        </Sequence>
+      ))}
 
       {/* Decorative circles */}
       <div

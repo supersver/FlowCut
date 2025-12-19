@@ -19,14 +19,21 @@ interface CustomClip {
   type: "image" | "video";
 }
 
+interface MusicTrack {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  volume: number;
+}
+
 interface Template1Props {
   productImages: string[];
   reviewText: string;
   reviewAuthor: string;
   rating: number;
   customClips?: CustomClip[];
-  musicUrl?: string;
-  musicVolume?: number;
+  musicTracks?: MusicTrack[];
 }
 
 export const Template1: React.FC<Template1Props> = ({
@@ -35,8 +42,7 @@ export const Template1: React.FC<Template1Props> = ({
   reviewAuthor,
   rating,
   customClips = [],
-  musicUrl,
-  musicVolume = 0.5,
+  musicTracks = [],
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -142,8 +148,16 @@ export const Template1: React.FC<Template1Props> = ({
 
   return (
     <AbsoluteFill className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Background Music */}
-      {musicUrl && <Audio src={musicUrl} volume={musicVolume} loop />}
+      {/* Background Music Tracks - with proper timing */}
+      {musicTracks.map((track) => (
+        <Sequence
+          key={track.id}
+          from={track.startFrame}
+          durationInFrames={track.endFrame - track.startFrame}
+        >
+          <Audio src={track.url} volume={track.volume} />
+        </Sequence>
+      ))}
 
       {/* Animated background particles */}
       <div
