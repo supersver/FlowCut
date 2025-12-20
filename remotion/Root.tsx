@@ -77,7 +77,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="template5"
         component={Template5 as unknown as React.FC<Record<string, unknown>>}
-        durationInFrames={1200}
+        durationInFrames={1050}
         fps={30}
         width={1080}
         height={1920}

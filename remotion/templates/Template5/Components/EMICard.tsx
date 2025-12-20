@@ -1,6 +1,11 @@
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 
+// HDFC Bank Brand Colors
+const HDFC_BLUE = "#004C8F";
+const HDFC_RED = "#E7131A";
+const HDFC_LIGHT_BLUE = "#E1EEFA";
+
 interface EMITransaction {
   name: string;
   amount: number;
@@ -16,86 +21,71 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
   const frame = useCurrentFrame();
 
   // Pop-in animation
-  const scale = interpolate(frame, [0, 8, 15], [0.7, 1.05, 1], {
+  const scaleIn = interpolate(frame, [0, 8, 15], [0.65, 1.05, 1], {
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.back(1.2)),
   });
 
-  const opacity = interpolate(frame, [0, 10], [0, 1], {
+  // Fade out animation (scene is 150 frames, fade out last 20 frames)
+  const scaleOut = interpolate(frame, [130, 150], [1, 0.8], {
+    extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Backdrop blur animation
-  const backdropOpacity = interpolate(frame, [0, 15], [0, 0.6], {
+  const fadeOut = interpolate(frame, [130, 150], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.in(Easing.quad),
+  });
+
+  // Combine animations
+  const scale = frame < 130 ? scaleIn : scaleIn * scaleOut;
+  const opacity =
+    interpolate(frame, [0, 10], [0, 1], {
+      extrapolateRight: "clamp",
+    }) * fadeOut;
+
+  const translateY = interpolate(frame, [130, 150], [0, 30], {
+    extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   return (
     <>
-      {/* Dark backdrop */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "#000000",
-          opacity: backdropOpacity,
-          zIndex: 55,
-        }}
-      />
-
       {/* EMI Card */}
       <div
         style={{
           position: "absolute",
-          top: "50%",
+          bottom: "13%",
           left: "50%",
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          transform: `translate(-50%, calc(-30% + ${translateY}px)) scale(${scale})`,
           opacity,
           zIndex: 60,
-          width: "88%",
-          maxWidth: "400px",
+          width: "92%",
+          maxWidth: "800px",
         }}
       >
         <div
           style={{
-            background: "linear-gradient(145deg, #8B0000 0%, #5C0000 100%)",
-            borderRadius: "24px",
-            padding: "28px",
-            boxShadow: "0 25px 80px rgba(0, 0, 0, 0.5)",
+            background: `linear-gradient(145deg, ${HDFC_BLUE} 0%, #003366 100%)`,
+            borderRadius: "28px",
+            padding: "36px",
+            boxShadow: "0 30px 100px rgba(0, 0, 0, 0.6)",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          {/* Header */}
+          {/* Decorative Red Accent Line */}
           <div
             style={{
-              textAlign: "center",
-              marginBottom: "24px",
-              paddingBottom: "20px",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "6px",
+              background: HDFC_RED,
             }}
-          >
-            <div
-              style={{
-                fontSize: "12px",
-                color: "rgba(255, 255, 255, 0.7)",
-                fontFamily: "'Inter', sans-serif",
-                marginBottom: "6px",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-              }}
-            >
-              Smart Finance Option
-            </div>
-            <div
-              style={{
-                fontSize: "24px",
-                fontWeight: 700,
-                color: "#ffffff",
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              Convert to EMI
-            </div>
-          </div>
+          />
 
           {/* Transaction List */}
           <div>
@@ -111,7 +101,7 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
               const itemSlideX = interpolate(
                 frame,
                 [itemDelay, itemDelay + 15],
-                [20, 0],
+                [25, 0],
                 { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
               );
 
@@ -119,10 +109,10 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
                 <div
                   key={transaction.name}
                   style={{
-                    background: "rgba(255, 255, 255, 0.1)",
-                    borderRadius: "14px",
-                    padding: "16px 18px",
-                    marginBottom: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    borderRadius: "18px",
+                    padding: "22px 24px",
+                    marginBottom: "14px",
                     opacity: itemOpacity,
                     transform: `translateX(${itemSlideX}px)`,
                   }}
@@ -132,13 +122,13 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "flex-start",
-                      marginBottom: "10px",
+                      marginBottom: "14px",
                     }}
                   >
                     <div
                       style={{
-                        fontSize: "15px",
-                        fontWeight: 600,
+                        fontSize: "20px",
+                        fontWeight: 700,
                         color: "#ffffff",
                         fontFamily: "'Inter', sans-serif",
                       }}
@@ -147,8 +137,8 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
                     </div>
                     <div
                       style={{
-                        fontSize: "16px",
-                        fontWeight: 700,
+                        fontSize: "22px",
+                        fontWeight: 800,
                         color: "#ffffff",
                         fontFamily: "'Inter', sans-serif",
                       }}
@@ -160,17 +150,17 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "12px",
                     }}
                   >
                     <div
                       style={{
-                        background: "rgba(255, 255, 255, 0.2)",
-                        borderRadius: "6px",
-                        padding: "6px 10px",
-                        fontSize: "12px",
-                        color: "#90EE90",
-                        fontWeight: 600,
+                        background: HDFC_RED,
+                        borderRadius: "8px",
+                        padding: "8px 14px",
+                        fontSize: "14px",
+                        color: "#ffffff",
+                        fontWeight: 700,
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >
@@ -178,9 +168,10 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
                     </div>
                     <div
                       style={{
-                        fontSize: "13px",
-                        color: "rgba(255, 255, 255, 0.85)",
+                        fontSize: "16px",
+                        color: "rgba(255, 255, 255, 0.9)",
                         fontFamily: "'Inter', sans-serif",
+                        fontWeight: 600,
                       }}
                     >
                       ₹{transaction.emiAmount.toLocaleString("en-IN")}/month
@@ -189,30 +180,6 @@ export const EMICard: React.FC<EMICardProps> = ({ transactions }) => {
                 </div>
               );
             })}
-          </div>
-
-          {/* CTA Button */}
-          <div
-            style={{
-              marginTop: "20px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                display: "inline-block",
-                background: "#ffffff",
-                color: "#8B0000",
-                padding: "14px 36px",
-                borderRadius: "30px",
-                fontSize: "15px",
-                fontWeight: 700,
-                fontFamily: "'Inter', sans-serif",
-                boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
-              }}
-            >
-              Choose EMI Plan
-            </div>
           </div>
         </div>
       </div>

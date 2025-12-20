@@ -97,7 +97,7 @@ const templates: TemplateConfig[] = [
     name: "HDFC Financial Services",
     description:
       "Credit card with spending analytics, merchant breakdown & EMI options.",
-    duration: 1200,
+    duration: 1050,
     component: Template5,
   },
 ];

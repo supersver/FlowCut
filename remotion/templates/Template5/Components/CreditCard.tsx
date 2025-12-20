@@ -1,6 +1,11 @@
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 
+// HDFC Bank Brand Colors
+const HDFC_BLUE = "#004C8F";
+const HDFC_RED = "#E7131A";
+const HDFC_LIGHT_BLUE = "#E1EEFA";
+
 interface CreditCardProps {
   userName: string;
   cardNumber: string;
@@ -8,7 +13,8 @@ interface CreditCardProps {
   totalLimit: number;
   availableLimit: number;
   logoUrl?: string;
-  isFooter?: boolean;
+  // Global frame for persistent card animation
+  globalFrame?: number;
 }
 
 export const CreditCard: React.FC<CreditCardProps> = ({
@@ -18,89 +24,164 @@ export const CreditCard: React.FC<CreditCardProps> = ({
   totalLimit,
   availableLimit,
   logoUrl,
-  isFooter = false,
+  globalFrame,
 }) => {
-  const frame = useCurrentFrame();
+  const localFrame = useCurrentFrame();
+  // Use global frame if provided (for persistent card), otherwise use local
+  const frame = globalFrame !== undefined ? globalFrame : localFrame;
 
-  // Animation timing for main card (scene starts at frame 0 relative)
-  // Slide in from below: 0-20 frames
-  // Progress bar fills: 20-100 frames
+  // ============================================
+  // ANIMATION PHASES (based on global timeline)
+  // ============================================
+  // Scene 2: Credit Card appears (90-240) - Card in center
+  // Scene 3+: Card moves to bottom (240-270) - Transition animation
+  // Scenes 3-5: Card stays at bottom (270-1110)
+  // Scene 6: Card fades out (1110+)
 
-  const slideInY = interpolate(frame, [0, 20], [200, 0], {
+  // Initial slide-in animation (frames 90-110 in global timeline)
+  const introSlideY = interpolate(frame, [90, 110], [250, 0], {
+    extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.cubic),
   });
 
-  const opacity = interpolate(frame, [0, 10], [0, 1], {
+  const introOpacity = interpolate(frame, [90, 100], [0, 1], {
+    extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Progress bar animation
-  const progressWidth = interpolate(frame, [20, 100], [0, limitUtilised], {
+  const introScale = interpolate(frame, [90, 105, 110], [0.85, 1.03, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  // Progress bar animation (frames 110-190)
+  const progressWidth = interpolate(frame, [110, 190], [0, limitUtilised], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
-  // Counter animation
-  const displayPercentage = interpolate(frame, [20, 100], [0, limitUtilised], {
+  const displayPercentage = interpolate(frame, [110, 190], [0, limitUtilised], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Scale for pop effect
-  const scale = interpolate(frame, [0, 15, 20], [0.9, 1.02, 1], {
+  // ============================================
+  // TRANSITION TO BOTTOM (frames 240-280)
+  // ============================================
+  // Position transition: center (75% from top) -> bottom (0)
+  const topPosition = interpolate(
+    frame,
+    [240, 280],
+    [75, 91], // 75% -> 100% (bottom anchored)
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.inOut(Easing.cubic),
+    }
+  );
+
+  // Width transition: 92% -> 100%
+  const cardWidth = interpolate(frame, [240, 280], [92, 100], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.inOut(Easing.cubic),
+  });
+
+  // Max width transition: 900px -> 100% (full width)
+  const maxWidthValue = interpolate(frame, [240, 280], [900, 1200], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.inOut(Easing.cubic),
+  });
+
+  // Border radius transition: 28px -> 28px 28px 0 0
+  const bottomRadius = interpolate(frame, [240, 280], [28, 0], {
+    extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const cardStyle: React.CSSProperties = isFooter
+  // ============================================
+  // FADE OUT before closing scene (frames 900-930)
+  // ============================================
+  const fadeOutOpacity = interpolate(frame, [900, 930], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  // Combine opacities
+  const finalOpacity = introOpacity * fadeOutOpacity;
+
+  // Determine if card is in "bottom mode" (after transition)
+  const isBottomMode = frame >= 280;
+
+  const cardStyle: React.CSSProperties = isBottomMode
     ? {
         position: "absolute",
         bottom: "0",
         left: "50%",
         transform: "translateX(-50%)",
-        width: "100%",
-        maxWidth: "400px",
-        zIndex: 40,
+        width: `${cardWidth}%`,
+        maxWidth: `${maxWidthValue}px`,
+        zIndex: 100, // High z-index to stay above all scenes
+        opacity: finalOpacity,
       }
     : {
         position: "absolute",
-        top: "50%",
+        top: `${topPosition}%`,
         left: "50%",
-        transform: `translate(-50%, -50%) translateY(${slideInY}px) scale(${scale})`,
-        opacity,
-        zIndex: 50,
-        width: "85%",
-        maxWidth: "380px",
+        transform: `translate(-50%, -50%) translateY(${introSlideY}px) scale(${introScale})`,
+        opacity: finalOpacity,
+        zIndex: 110, // Higher in center mode
+        width: `${cardWidth}%`,
+        maxWidth: `${maxWidthValue}px`,
       };
 
   return (
     <div style={cardStyle}>
       <div
         style={{
-          background: "linear-gradient(145deg, #8B0000 0%, #5C0000 100%)",
-          borderRadius: isFooter ? "20px 20px 0 0" : "20px",
-          padding: "28px",
-          boxShadow: isFooter
-            ? "0 -4px 20px rgba(0, 0, 0, 0.3)"
-            : "0 20px 60px rgba(139, 0, 0, 0.4)",
+          background: `linear-gradient(145deg, ${HDFC_BLUE} 0%, #003366 100%)`,
+          borderRadius: isBottomMode
+            ? "28px 28px 0 0"
+            : `28px 28px ${bottomRadius}px ${bottomRadius}px`,
+          padding: "36px",
+          boxShadow: isBottomMode
+            ? "0 -6px 30px rgba(0, 0, 0, 0.35)"
+            : "0 24px 70px rgba(0, 76, 143, 0.5)",
           color: "#ffffff",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        {/* Decorative Red Accent Line */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "6px",
+            background: HDFC_RED,
+          }}
+        />
+
         {/* Card Header */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            marginBottom: "24px",
+            marginBottom: "32px",
+            marginTop: "8px",
           }}
         >
           <div>
             <div
               style={{
-                fontSize: "18px",
-                fontWeight: 600,
+                fontSize: "24px",
+                fontWeight: 700,
                 fontFamily: "'Inter', sans-serif",
                 letterSpacing: "0.5px",
               }}
@@ -109,42 +190,49 @@ export const CreditCard: React.FC<CreditCardProps> = ({
             </div>
             <div
               style={{
-                fontSize: "14px",
+                fontSize: "18px",
                 fontFamily: "'Roboto Mono', monospace",
-                opacity: 0.8,
-                marginTop: "4px",
-                letterSpacing: "2px",
+                opacity: 0.85,
+                marginTop: "6px",
+                letterSpacing: "3px",
               }}
             >
               {cardNumber}
             </div>
           </div>
-          {logoUrl && (
-            <img
-              src={logoUrl}
-              alt="Bank Logo"
+
+          <div style={{ textAlign: "right" }}>
+            <div
               style={{
-                height: "36px",
-                width: "auto",
-                objectFit: "contain",
+                fontSize: "13px",
+                opacity: 0.8,
+                marginBottom: "6px",
+                fontWeight: 500,
               }}
-            />
-          )}
+            >
+              Available Credit Limit
+            </div>
+            <div
+              style={{ fontSize: "22px", fontWeight: 700, color: "#7CFC00" }}
+            >
+              ₹{availableLimit.toLocaleString("en-IN")}
+            </div>
+          </div>
         </div>
 
         {/* Progress Section */}
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: "28px" }}>
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              marginBottom: "8px",
-              fontSize: "12px",
-              opacity: 0.9,
+              marginBottom: "12px",
+              fontSize: "16px",
+              opacity: 0.95,
             }}
           >
-            <span>Limit Utilised</span>
-            <span style={{ fontWeight: 700, fontSize: "16px" }}>
+            <span style={{ fontWeight: 500 }}>Limit Utilised</span>
+            <span style={{ fontWeight: 800, fontSize: "22px" }}>
               {displayPercentage.toFixed(1)}%
             </span>
           </div>
@@ -153,9 +241,9 @@ export const CreditCard: React.FC<CreditCardProps> = ({
           <div
             style={{
               width: "100%",
-              height: "8px",
-              background: "rgba(255, 255, 255, 0.2)",
-              borderRadius: "4px",
+              height: "12px",
+              background: "rgba(255, 255, 255, 0.25)",
+              borderRadius: "6px",
               overflow: "hidden",
             }}
           >
@@ -163,8 +251,8 @@ export const CreditCard: React.FC<CreditCardProps> = ({
               style={{
                 width: `${progressWidth}%`,
                 height: "100%",
-                background: "linear-gradient(90deg, #ffffff 0%, #f0f0f0 100%)",
-                borderRadius: "4px",
+                background: `linear-gradient(90deg, #ffffff 0%, ${HDFC_LIGHT_BLUE} 100%)`,
+                borderRadius: "6px",
                 transition: "width 0.1s ease-out",
               }}
             />
@@ -176,30 +264,23 @@ export const CreditCard: React.FC<CreditCardProps> = ({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            borderTop: "1px solid rgba(255, 255, 255, 0.2)",
-            paddingTop: "16px",
+            borderTop: "2px solid rgba(255, 255, 255, 0.25)",
+            paddingTop: "24px",
           }}
         >
           <div>
             <div
-              style={{ fontSize: "10px", opacity: 0.7, marginBottom: "4px" }}
+              style={{
+                fontSize: "13px",
+                opacity: 0.8,
+                marginBottom: "6px",
+                fontWeight: 500,
+              }}
             >
               Total Credit Limit
             </div>
-            <div style={{ fontSize: "16px", fontWeight: 600 }}>
+            <div style={{ fontSize: "22px", fontWeight: 700 }}>
               ₹{totalLimit.toLocaleString("en-IN")}
-            </div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div
-              style={{ fontSize: "10px", opacity: 0.7, marginBottom: "4px" }}
-            >
-              Available Credit Limit
-            </div>
-            <div
-              style={{ fontSize: "16px", fontWeight: 600, color: "#90EE90" }}
-            >
-              ₹{availableLimit.toLocaleString("en-IN")}
             </div>
           </div>
         </div>
@@ -208,13 +289,13 @@ export const CreditCard: React.FC<CreditCardProps> = ({
         <div
           style={{
             position: "absolute",
-            bottom: "16px",
-            right: "20px",
-            fontSize: "22px",
-            fontWeight: 700,
+            bottom: "20px",
+            right: "28px",
+            fontSize: "28px",
+            fontWeight: 800,
             fontStyle: "italic",
-            opacity: 0.9,
-            letterSpacing: "1px",
+            opacity: 0.95,
+            letterSpacing: "2px",
           }}
         >
           VISA

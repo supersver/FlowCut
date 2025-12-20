@@ -1,6 +1,11 @@
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 
+// HDFC Bank Brand Colors
+const HDFC_BLUE = "#004C8F";
+const HDFC_RED = "#E7131A";
+const HDFC_LIGHT_BLUE = "#E1EEFA";
+
 interface Merchant {
   name: string;
   logo?: string;
@@ -25,7 +30,7 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
       style={{
         position: "absolute",
         inset: 0,
-        background: "#F5F5F5",
+        background: "#F5F7FA",
         opacity,
         zIndex: 60,
         display: "flex",
@@ -35,16 +40,16 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
       {/* Header */}
       <div
         style={{
-          background: "#8B0000",
-          padding: "20px 24px",
-          paddingTop: "50px",
+          background: HDFC_BLUE,
+          padding: "28px 32px",
+          paddingTop: "60px",
         }}
       >
         <h2
           style={{
             color: "#ffffff",
-            fontSize: "20px",
-            fontWeight: 600,
+            fontSize: "28px",
+            fontWeight: 700,
             fontFamily: "'Inter', sans-serif",
             margin: 0,
           }}
@@ -58,7 +63,7 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
         style={{
           display: "flex",
           background: "#ffffff",
-          borderBottom: "1px solid #E8E8E8",
+          borderBottom: "2px solid #E8E8E8",
         }}
       >
         {["Transactions", "Category", "Merchants"].map((tab) => {
@@ -68,14 +73,14 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
               key={tab}
               style={{
                 flex: 1,
-                padding: "16px",
+                padding: "20px",
                 textAlign: "center",
-                fontSize: "14px",
-                fontWeight: isActive ? 600 : 400,
-                color: isActive ? "#8B0000" : "#666666",
+                fontSize: "18px",
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? HDFC_BLUE : "#5A6679",
                 borderBottom: isActive
-                  ? "3px solid #8B0000"
-                  : "3px solid transparent",
+                  ? `4px solid ${HDFC_RED}`
+                  : "4px solid transparent",
                 fontFamily: "'Inter', sans-serif",
               }}
             >
@@ -89,7 +94,7 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
       <div
         style={{
           flex: 1,
-          padding: "16px",
+          padding: "24px",
           overflowY: "auto",
         }}
       >
@@ -105,7 +110,7 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
           const cardSlideY = interpolate(
             frame,
             [cardDelay, cardDelay + 12],
-            [20, 0],
+            [25, 0],
             {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
@@ -118,12 +123,13 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
               key={merchant.name}
               style={{
                 background: "#ffffff",
-                borderRadius: "16px",
-                padding: "18px 20px",
-                marginBottom: "10px",
+                borderRadius: "20px",
+                padding: "24px 28px",
+                marginBottom: "14px",
                 display: "flex",
                 alignItems: "center",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+                border: `2px solid ${HDFC_LIGHT_BLUE}`,
                 opacity: cardOpacity,
                 transform: `translateY(${cardSlideY}px)`,
               }}
@@ -131,16 +137,18 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
               {/* Merchant Logo/Initial */}
               <div
                 style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "12px",
-                  background: merchant.logo ? "#ffffff" : "#8B0000",
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "16px",
+                  background: merchant.logo ? "#ffffff" : HDFC_BLUE,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginRight: "16px",
+                  marginRight: "20px",
                   overflow: "hidden",
-                  border: merchant.logo ? "1px solid #E8E8E8" : "none",
+                  border: merchant.logo
+                    ? `2px solid ${HDFC_LIGHT_BLUE}`
+                    : "none",
                 }}
               >
                 {merchant.logo ? (
@@ -157,8 +165,8 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
                   <span
                     style={{
                       color: "#ffffff",
-                      fontSize: "20px",
-                      fontWeight: 700,
+                      fontSize: "28px",
+                      fontWeight: 800,
                       fontFamily: "'Inter', sans-serif",
                     }}
                   >
@@ -171,9 +179,9 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
               <div style={{ flex: 1 }}>
                 <div
                   style={{
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    color: "#1a1a2e",
+                    fontSize: "20px",
+                    fontWeight: 700,
+                    color: "#111928",
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
@@ -181,10 +189,11 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
                 </div>
                 <div
                   style={{
-                    fontSize: "13px",
-                    color: "#666666",
-                    marginTop: "4px",
+                    fontSize: "16px",
+                    color: "#5A6679",
+                    marginTop: "6px",
                     fontFamily: "'Inter', sans-serif",
+                    fontWeight: 500,
                   }}
                 >
                   {merchant.count} transaction{merchant.count !== 1 ? "s" : ""}
@@ -194,9 +203,9 @@ export const MerchantList: React.FC<MerchantListProps> = ({ merchants }) => {
               {/* Amount */}
               <div
                 style={{
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  color: "#8B0000",
+                  fontSize: "24px",
+                  fontWeight: 800,
+                  color: HDFC_BLUE,
                   fontFamily: "'Inter', sans-serif",
                 }}
               >

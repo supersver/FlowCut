@@ -1,6 +1,11 @@
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 
+// HDFC Bank Brand Colors
+const HDFC_BLUE = "#004C8F";
+const HDFC_RED = "#E7131A";
+const HDFC_LIGHT_BLUE = "#E1EEFA";
+
 interface Category {
   name: string;
   percentage: number;
@@ -20,7 +25,7 @@ const DonutChart: React.FC<{ percentage: number; delay: number }> = ({
 }) => {
   const frame = useCurrentFrame();
 
-  const circumference = 2 * Math.PI * 28; // radius = 28
+  const circumference = 2 * Math.PI * 36; // radius = 36 (larger)
   const animatedPercentage = interpolate(
     frame,
     [delay, delay + 40],
@@ -36,38 +41,38 @@ const DonutChart: React.FC<{ percentage: number; delay: number }> = ({
     circumference - (animatedPercentage / 100) * circumference;
 
   return (
-    <svg width="70" height="70" viewBox="0 0 70 70">
+    <svg width="90" height="90" viewBox="0 0 90 90">
       {/* Background circle */}
       <circle
-        cx="35"
-        cy="35"
-        r="28"
+        cx="45"
+        cy="45"
+        r="36"
         fill="none"
-        stroke="#E8E8E8"
-        strokeWidth="6"
+        stroke={HDFC_LIGHT_BLUE}
+        strokeWidth="8"
       />
       {/* Progress circle */}
       <circle
-        cx="35"
-        cy="35"
-        r="28"
+        cx="45"
+        cy="45"
+        r="36"
         fill="none"
-        stroke="#8B0000"
-        strokeWidth="6"
+        stroke={HDFC_BLUE}
+        strokeWidth="8"
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={strokeDashoffset}
-        transform="rotate(-90 35 35)"
+        transform="rotate(-90 45 45)"
         style={{ transition: "stroke-dashoffset 0.1s ease-out" }}
       />
       {/* Center text */}
       <text
-        x="35"
-        y="38"
+        x="45"
+        y="50"
         textAnchor="middle"
-        fontSize="14"
-        fontWeight="600"
-        fill="#1a1a2e"
+        fontSize="18"
+        fontWeight="700"
+        fill="#111928"
         fontFamily="Inter, sans-serif"
       >
         {Math.round(animatedPercentage)}%
@@ -83,7 +88,7 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
   const frame = useCurrentFrame();
 
   // Interface slide up animation
-  const slideY = interpolate(frame, [0, 25], [800, 0], {
+  const slideY = interpolate(frame, [0, 25], [900, 0], {
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.cubic),
   });
@@ -97,7 +102,7 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
       style={{
         position: "absolute",
         inset: 0,
-        background: "#F5F5F5",
+        background: "#F5F7FA",
         transform: `translateY(${slideY}px)`,
         opacity,
         zIndex: 60,
@@ -108,16 +113,16 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
       {/* Header */}
       <div
         style={{
-          background: "#8B0000",
-          padding: "20px 24px",
-          paddingTop: "50px",
+          background: HDFC_BLUE,
+          padding: "28px 32px",
+          paddingTop: "60px",
         }}
       >
         <h2
           style={{
             color: "#ffffff",
-            fontSize: "20px",
-            fontWeight: 600,
+            fontSize: "28px",
+            fontWeight: 700,
             fontFamily: "'Inter', sans-serif",
             margin: 0,
           }}
@@ -131,7 +136,7 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
         style={{
           display: "flex",
           background: "#ffffff",
-          borderBottom: "1px solid #E8E8E8",
+          borderBottom: "2px solid #E8E8E8",
         }}
       >
         {["Transactions", "Category", "Merchants"].map((tab) => {
@@ -141,14 +146,14 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
               key={tab}
               style={{
                 flex: 1,
-                padding: "16px",
+                padding: "20px",
                 textAlign: "center",
-                fontSize: "14px",
-                fontWeight: isActive ? 600 : 400,
-                color: isActive ? "#8B0000" : "#666666",
+                fontSize: "18px",
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? HDFC_BLUE : "#5A6679",
                 borderBottom: isActive
-                  ? "3px solid #8B0000"
-                  : "3px solid transparent",
+                  ? `4px solid ${HDFC_RED}`
+                  : "4px solid transparent",
                 fontFamily: "'Inter', sans-serif",
               }}
             >
@@ -162,7 +167,7 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
       <div
         style={{
           flex: 1,
-          padding: "16px",
+          padding: "24px",
           overflowY: "auto",
         }}
       >
@@ -178,7 +183,7 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
           const cardSlideX = interpolate(
             frame,
             [cardDelay, cardDelay + 15],
-            [50, 0],
+            [60, 0],
             {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
@@ -191,12 +196,13 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
               key={category.name}
               style={{
                 background: "#ffffff",
-                borderRadius: "16px",
-                padding: "20px",
-                marginBottom: "12px",
+                borderRadius: "20px",
+                padding: "28px",
+                marginBottom: "16px",
                 display: "flex",
                 alignItems: "center",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+                border: `2px solid ${HDFC_LIGHT_BLUE}`,
                 opacity: cardOpacity,
                 transform: `translateX(${cardSlideX}px)`,
               }}
@@ -204,15 +210,15 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
               {/* Icon */}
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "12px",
-                  background: "#FFF5F5",
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "16px",
+                  background: HDFC_LIGHT_BLUE,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "24px",
-                  marginRight: "16px",
+                  fontSize: "32px",
+                  marginRight: "24px",
                 }}
               >
                 {category.icon}
@@ -222,9 +228,9 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
               <div style={{ flex: 1 }}>
                 <div
                   style={{
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    color: "#1a1a2e",
+                    fontSize: "22px",
+                    fontWeight: 700,
+                    color: "#111928",
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
@@ -232,10 +238,10 @@ export const SpendingCategories: React.FC<SpendingCategoriesProps> = ({
                 </div>
                 <div
                   style={{
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: "#8B0000",
-                    marginTop: "4px",
+                    fontSize: "26px",
+                    fontWeight: 800,
+                    color: HDFC_BLUE,
+                    marginTop: "6px",
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >

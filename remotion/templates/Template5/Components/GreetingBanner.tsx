@@ -5,6 +5,11 @@ interface GreetingBannerProps {
   recipientName: string;
 }
 
+// HDFC Bank Brand Colors
+const HDFC_BLUE = "#004C8F";
+const HDFC_RED = "#E7131A";
+const HDFC_LIGHT_BLUE = "#E1EEFA";
+
 export const GreetingBanner: React.FC<GreetingBannerProps> = ({
   recipientName,
 }) => {
@@ -19,12 +24,12 @@ export const GreetingBanner: React.FC<GreetingBannerProps> = ({
     extrapolateRight: "clamp",
   });
 
-  const translateY = interpolate(frame, [0, 15], [30, 0], {
+  const translateY = interpolate(frame, [0, 15], [40, 0], {
     extrapolateRight: "clamp",
   });
 
   // Subtle scale animation for polish
-  const scale = interpolate(frame, [0, 15], [0.95, 1], {
+  const scale = interpolate(frame, [0, 15], [0.92, 1], {
     extrapolateRight: "clamp",
   });
 
@@ -32,7 +37,7 @@ export const GreetingBanner: React.FC<GreetingBannerProps> = ({
     <div
       style={{
         position: "absolute",
-        bottom: "120px",
+        bottom: "15%",
         left: "50%",
         transform: `translateX(-50%) translateY(${translateY}px) scale(${scale})`,
         opacity,
@@ -41,24 +46,24 @@ export const GreetingBanner: React.FC<GreetingBannerProps> = ({
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(10px)",
-          borderRadius: "16px",
-          padding: "20px 40px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
+          background: "rgba(255, 255, 255, 0.98)",
+          backdropFilter: "blur(12px)",
+          borderRadius: "24px",
+          padding: "32px 60px",
+          boxShadow: "0 12px 48px rgba(0, 0, 0, 0.2)",
+          border: `3px solid ${HDFC_BLUE}`,
         }}
       >
         <span
           style={{
             fontFamily: "'Inter', 'Segoe UI', sans-serif",
-            fontSize: "32px",
-            fontWeight: 400,
-            color: "#1a1a2e",
+            fontSize: "62px",
+            fontWeight: 500,
+            color: "#111928",
           }}
         >
           Hello{" "}
-          <span style={{ fontWeight: 700, color: "#8B0000" }}>
+          <span style={{ fontWeight: 700, color: HDFC_BLUE }}>
             {recipientName}
           </span>
         </span>

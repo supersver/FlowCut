@@ -97,9 +97,9 @@ const DEFAULT_MERCHANTS: Merchant[] = [
 ];
 
 const DEFAULT_EMI_TRANSACTIONS: EMITransaction[] = [
-  { name: "iPhone 15 Pro", amount: 134900, emiMonths: 6, emiAmount: 22483 },
-  { name: 'Sony TV 55"', amount: 89990, emiMonths: 12, emiAmount: 7499 },
-  { name: "Dyson Vacuum", amount: 45000, emiMonths: 6, emiAmount: 7500 },
+  { name: "Vivanta Hotels", amount: 45000, emiMonths: 6, emiAmount: 7500 },
+  { name: 'MakeMyTrip"', amount: 32000, emiMonths: 12, emiAmount: 2666 },
+  { name: "Shoppers Stop", amount: 18500, emiMonths: 6, emiAmount: 3083 },
 ];
 
 export const Template5: React.FC<Template5Props> = ({
@@ -110,34 +110,36 @@ export const Template5: React.FC<Template5Props> = ({
   captions: captionsProp,
   captionSettings: captionSettingsProp,
   userName = "Jayant Bhakhri",
-  cardNumber = "•••• •••• •••• 4832",
+  cardNumber = "•••• •••• •••• 6959",
   limitUtilised = 49,
   totalLimit = 500000,
   availableLimit = 255000,
   categories = DEFAULT_CATEGORIES,
   merchants = DEFAULT_MERCHANTS,
   emiTransactions = DEFAULT_EMI_TRANSACTIONS,
-  brandText = "SMART BANK OF INDIA",
+  brandText = "HDFC BANK PVT. LTD.",
   ctaText = "Choose your EMI plan",
 }) => {
   const frame = useCurrentFrame();
 
   // ============================================
-  // SCENE TIMING (at 30fps)
+  // SCENE TIMING (at 30fps) - 35 second video
   // ============================================
-  // Scene 1: Intro + Greeting Banner    | 0-90 frames (3s)
-  // Scene 2: Credit Card                | 90-240 frames (5s)
-  // Scene 3: Spending Categories        | 240-540 frames (10s)
-  // Scene 4: Merchant List              | 540-750 frames (7s)
-  // Scene 5: EMI Card                   | 750-1110 frames (12s)
-  // Scene 6: Closing CTA                | 1110-1200 frames (3s)
-  // Total: 1200 frames (40s)
+  // Scene 1: Intro + Greeting Banner    | 0-90 frames (0-3s)
+  // Scene 2: Credit Card                | 90-240 frames (3-8s)
+  // Scene 3: Spending Categories        | 240-480 frames (8-16s)
+  // Scene 4: Merchant List              | 480-630 frames (16-21s)
+  // Scene 5: EMI Card                   | 630-780 frames (21-26s)
+  // (Presenter only)                    | 780-930 frames (26-31s)
+  // Scene 6: Closing CTA                | 930-1050 frames (31-35s)
+  // Total: 1050 frames (35s)
 
   // Presenter video visibility
-  // Show during intro (0-90), hide during app interface (240-1110)
+  // Show during intro, credit card, EMI card, presenter-only, and closing
+  // Hide during app interface (Spending Categories & Merchant List: 240-630)
   const presenterOpacity = interpolate(
     frame,
-    [0, 90, 240, 260, 1080, 1110],
+    [0, 90, 240, 260, 600, 630],
     [1, 1, 1, 0.0001, 0.0001, 1],
     { extrapolateRight: "clamp" }
   );
@@ -204,38 +206,38 @@ export const Template5: React.FC<Template5Props> = ({
       {/* GLOBAL LAYERS */}
       {/* ============================================ */}
 
-      {/* Logo on top-left */}
+      {/* Logo on top-right */}
       {logoUrl && (
         <div
           style={{
             position: "absolute",
             top: "40px",
-            left: "40px",
+            right: "40px",
             zIndex: 100,
             opacity: interpolate(frame, [0, 30], [0, 1], {
               extrapolateRight: "clamp",
             }),
           }}
         >
-          <div
+          {/* <div
             style={{
               padding: "12px 16px",
               background: "rgba(255, 255, 255, 0.95)",
               borderRadius: "12px",
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
             }}
-          >
-            <img
-              src={logoUrl}
-              alt="Logo"
-              style={{
-                height: "50px",
-                width: "auto",
-                maxWidth: "150px",
-                objectFit: "contain",
-              }}
-            />
-          </div>
+          > */}
+          <img
+            src={logoUrl}
+            alt="Logo"
+            style={{
+              height: "90px",
+              width: "auto",
+              maxWidth: "250px",
+              objectFit: "contain",
+            }}
+          />
+          {/* </div> */}
         </div>
       )}
 
@@ -302,8 +304,9 @@ export const Template5: React.FC<Template5Props> = ({
         <GreetingBanner recipientName={recipientName} />
       </Sequence>
 
-      {/* Scene 2: Credit Card (90-240 frames) */}
-      <Sequence from={90} durationInFrames={150} style={{ zIndex: 20 }}>
+      {/* PERSISTENT CREDIT CARD (90-930 frames) */}
+      {/* Appears at frame 90, transitions to bottom at 240, fades out at 930 */}
+      {frame >= 90 && frame < 930 && (
         <CreditCard
           userName={userName}
           cardNumber={cardNumber}
@@ -311,26 +314,27 @@ export const Template5: React.FC<Template5Props> = ({
           totalLimit={totalLimit}
           availableLimit={availableLimit}
           logoUrl={logoUrl}
+          globalFrame={frame}
         />
-      </Sequence>
+      )}
 
-      {/* Scene 3: Spending Categories (240-540 frames) */}
-      <Sequence from={240} durationInFrames={300} style={{ zIndex: 30 }}>
+      {/* Scene 3: Spending Categories (240-480 frames = 8s to 16s) */}
+      <Sequence from={240} durationInFrames={240} style={{ zIndex: 30 }}>
         <SpendingCategories categories={categories} activeTab="category" />
       </Sequence>
 
-      {/* Scene 4: Merchant List (540-750 frames) */}
-      <Sequence from={540} durationInFrames={210} style={{ zIndex: 40 }}>
+      {/* Scene 4: Merchant List (480-630 frames = 16s to 21s) */}
+      <Sequence from={480} durationInFrames={150} style={{ zIndex: 40 }}>
         <MerchantList merchants={merchants} />
       </Sequence>
 
-      {/* Scene 5: EMI Card (750-1110 frames) */}
-      <Sequence from={750} durationInFrames={360} style={{ zIndex: 50 }}>
+      {/* Scene 5: EMI Card (630-780 frames = 21s to 26s) */}
+      <Sequence from={630} durationInFrames={150} style={{ zIndex: 50 }}>
         <EMICard transactions={emiTransactions} />
       </Sequence>
 
-      {/* Scene 6: Closing CTA (1110-1200 frames) */}
-      <Sequence from={1110} durationInFrames={90} style={{ zIndex: 60 }}>
+      {/* Scene 6: Closing CTA (930-1050 frames = 31s to 35s) */}
+      <Sequence from={930} durationInFrames={120} style={{ zIndex: 60 }}>
         <ClosingCTA logoUrl={logoUrl} brandText={brandText} ctaText={ctaText} />
       </Sequence>
 

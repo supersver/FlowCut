@@ -1,6 +1,11 @@
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 
+// HDFC Bank Brand Colors
+const HDFC_BLUE = "#004C8F";
+const HDFC_RED = "#E7131A";
+const HDFC_LIGHT_BLUE = "#E1EEFA";
+
 interface ClosingCTAProps {
   logoUrl?: string;
   brandText: string;
@@ -24,7 +29,7 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
     extrapolateRight: "clamp",
   });
 
-  const logoScale = interpolate(frame, [15, 35], [0.9, 1], {
+  const logoScale = interpolate(frame, [15, 35], [0.85, 1], {
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.cubic),
   });
@@ -34,7 +39,7 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
     extrapolateRight: "clamp",
   });
 
-  const ctaSlideY = interpolate(frame, [35, 55], [20, 0], {
+  const ctaSlideY = interpolate(frame, [35, 55], [30, 0], {
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.cubic),
   });
@@ -51,7 +56,7 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "40px",
+        padding: "48px",
       }}
     >
       {/* Logo or Brand Box */}
@@ -59,7 +64,7 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
         style={{
           opacity: logoOpacity,
           transform: `scale(${logoScale})`,
-          marginBottom: "40px",
+          marginBottom: "48px",
         }}
       >
         {logoUrl ? (
@@ -67,28 +72,41 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
             src={logoUrl}
             alt="Brand Logo"
             style={{
-              maxHeight: "120px",
-              maxWidth: "280px",
+              maxHeight: "140px",
+              maxWidth: "320px",
               objectFit: "contain",
             }}
           />
         ) : (
           <div
             style={{
-              background: "#8B0000",
-              borderRadius: "16px",
-              padding: "24px 40px",
-              boxShadow: "0 8px 30px rgba(139, 0, 0, 0.3)",
+              background: HDFC_BLUE,
+              borderRadius: "20px",
+              padding: "32px 56px",
+              boxShadow: "0 12px 40px rgba(0, 76, 143, 0.35)",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
+            {/* Red accent */}
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "5px",
+                background: HDFC_RED,
+              }}
+            />
             <div
               style={{
                 color: "#ffffff",
-                fontSize: "28px",
-                fontWeight: 700,
+                fontSize: "36px",
+                fontWeight: 800,
                 fontFamily: "'Inter', sans-serif",
                 textAlign: "center",
-                letterSpacing: "0.5px",
+                letterSpacing: "1px",
               }}
             >
               {brandText}
@@ -106,14 +124,14 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
       >
         <div
           style={{
-            background: "#8B0000",
+            background: HDFC_RED,
             color: "#ffffff",
-            padding: "18px 48px",
-            borderRadius: "50px",
-            fontSize: "18px",
-            fontWeight: 600,
+            padding: "22px 64px",
+            borderRadius: "60px",
+            fontSize: "22px",
+            fontWeight: 700,
             fontFamily: "'Inter', sans-serif",
-            boxShadow: "0 6px 25px rgba(139, 0, 0, 0.35)",
+            boxShadow: "0 8px 30px rgba(231, 19, 26, 0.4)",
             cursor: "pointer",
           }}
         >
@@ -126,13 +144,14 @@ export const ClosingCTA: React.FC<ClosingCTAProps> = ({
         style={{
           position: "absolute",
           bottom: "60px",
-          opacity: ctaOpacity * 0.6,
-          fontSize: "12px",
-          color: "#666666",
+          opacity: ctaOpacity * 0.7,
+          fontSize: "16px",
+          color: "#5A6679",
           fontFamily: "'Inter', sans-serif",
+          fontWeight: 500,
         }}
       >
-        Powered by Smart Banking
+        Powered by HDFC Bank
       </div>
     </div>
   );
