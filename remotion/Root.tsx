@@ -83,16 +83,16 @@ export const RemotionRoot: React.FC = () => {
         height={1920}
         defaultProps={{
           recipientName: "Jayant",
-          presenterVideoUrl: "",
-          logoUrl: "",
+          presenterVideoUrl: staticFile("template-5-presenter-video.mp4"),
+          logoUrl: staticFile("bank logo.png"),
           musicTracks: [],
           captions: [],
           userName: "Jayant Bhakhri",
-          cardNumber: "•••• •••• •••• 4832",
+          cardNumber: "•••• •••• •••• 6959",
           limitUtilised: 49,
           totalLimit: 500000,
           availableLimit: 255000,
-          brandText: "SMART BANK OF INDIA",
+          brandText: "HDFC BANK PVT. LTD.",
           ctaText: "Choose your EMI plan",
         }}
       />

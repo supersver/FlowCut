@@ -63,20 +63,20 @@ interface TemplateConfig {
 }
 
 const templates: TemplateConfig[] = [
-  {
-    id: "template1",
-    name: "Modern Slide",
-    description: "Showcase multiple products with a clean review card.",
-    duration: 450,
-    component: Template1,
-  },
-  {
-    id: "template2",
-    name: "Carousel",
-    description: "Fade between products, then highlight a review.",
-    duration: 600,
-    component: Template2,
-  },
+  // {
+  //   id: "template1",
+  //   name: "Modern Slide",
+  //   description: "Showcase multiple products with a clean review card.",
+  //   duration: 450,
+  //   component: Template1,
+  // },
+  // {
+  //   id: "template2",
+  //   name: "Carousel",
+  //   description: "Fade between products, then highlight a review.",
+  //   duration: 600,
+  //   component: Template2,
+  // },
   {
     id: "template3",
     name: "Split Screen",
@@ -127,7 +127,7 @@ export default function Home() {
   const [usePhoneTease, setUsePhoneTease] = useState(true);
   // Template5 specific props
   const [t5UserName, setT5UserName] = useState("Jayant Bhakhri");
-  const [t5CardNumber, setT5CardNumber] = useState("•••• •••• •••• 4832");
+  const [t5CardNumber, setT5CardNumber] = useState("•••• •••• •••• 6959");
   const [t5LimitUtilised, setT5LimitUtilised] = useState(49);
   const [t5TotalLimit, setT5TotalLimit] = useState(500000);
   const [t5AvailableLimit, setT5AvailableLimit] = useState(255000);

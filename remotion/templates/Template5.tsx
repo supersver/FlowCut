@@ -145,9 +145,97 @@ export const Template5: React.FC<Template5Props> = ({
   );
 
   // ============================================
-  // CAPTIONS LOGIC (copied from Template 4)
+  // CAPTIONS LOGIC (same UI as Template 4)
   // ============================================
-  const defaultCaptions: CaptionItem[] = [];
+  // Default captions from template-5-CC.srt (at 30fps)
+  const defaultCaptions: CaptionItem[] = [
+    {
+      id: "1",
+      startFrame: 4,
+      endFrame: 58,
+      text: "Hello Jayant, you're nearing",
+    },
+    {
+      id: "2",
+      startFrame: 58,
+      endFrame: 126,
+      text: "50% of your credit usage",
+    },
+    {
+      id: "3",
+      startFrame: 126,
+      endFrame: 193,
+      text: "on your Platinum credit card,",
+    },
+    {
+      id: "4",
+      startFrame: 193,
+      endFrame: 261,
+      text: "ending with 6959. Here is",
+    },
+    {
+      id: "5",
+      startFrame: 261,
+      endFrame: 328,
+      text: "a smart spend analysis. Dining",
+    },
+    {
+      id: "6",
+      startFrame: 328,
+      endFrame: 396,
+      text: "remained your top spend this",
+    },
+    {
+      id: "7",
+      startFrame: 396,
+      endFrame: 477,
+      text: "month, while travel just missed the",
+    },
+    {
+      id: "8",
+      startFrame: 477,
+      endFrame: 558,
+      text: "crumb. Your top merchants were Vivanta,",
+    },
+    {
+      id: "9",
+      startFrame: 558,
+      endFrame: 599,
+      text: "MakeMyTrip, and Shoppers",
+    },
+    { id: "10", startFrame: 599, endFrame: 669, text: "Stop. With" },
+    {
+      id: "11",
+      startFrame: 669,
+      endFrame: 741,
+      text: "Flexy EMI, now you can get your credit",
+    },
+    {
+      id: "12",
+      startFrame: 741,
+      endFrame: 785,
+      text: "usage under control by converting",
+    },
+    {
+      id: "13",
+      startFrame: 785,
+      endFrame: 866,
+      text: "these spends to easy EMI. That can be good,",
+    },
+    {
+      id: "14",
+      startFrame: 860,
+      endFrame: 950,
+      text: "bad. And knowing the difference is financial",
+    },
+    {
+      id: "15",
+      startFrame: 950,
+      endFrame: 1022,
+      text: "wisdom. Tap the button below and choose your",
+    },
+    { id: "16", startFrame: 1022, endFrame: 1040, text: "EMI plan." },
+  ];
 
   const captions =
     captionsProp && captionsProp.length > 0 ? captionsProp : defaultCaptions;
@@ -157,13 +245,29 @@ export const Template5: React.FC<Template5Props> = ({
     fontSize: captionSettingsProp?.fontSize || 44,
     color: captionSettingsProp?.color || "#ffffff",
     backgroundColor:
-      captionSettingsProp?.backgroundColor || "rgba(0, 0, 0, 0.7)",
+      captionSettingsProp?.backgroundColor || "rgba(0, 0, 0, 0.5)",
     position: captionSettingsProp?.position || "bottom",
   };
 
   const currentCaption = captions.find(
     (cap) => frame >= cap.startFrame && frame < cap.endFrame
   );
+
+  // Caption position - moves above credit card when it's at bottom (frames 280-930)
+  const getCaptionPosition = () => {
+    const isCreditCardAtBottom = frame >= 280 && frame < 930;
+
+    switch (captionSettings.position) {
+      case "top":
+        return "100px";
+      case "center":
+        return "50%";
+      case "bottom":
+      default:
+        // When credit card is at bottom, position caption higher (above the card)
+        return isCreditCardAtBottom ? "330px" : "100px";
+    }
+  };
 
   const getCaptionOpacity = () => {
     if (!currentCaption) return 0;
@@ -207,7 +311,7 @@ export const Template5: React.FC<Template5Props> = ({
       {/* ============================================ */}
 
       {/* Logo on top-right */}
-      {logoUrl && (
+      {logoUrl && frame < 930 && (
         <div
           style={{
             position: "absolute",
@@ -345,8 +449,17 @@ export const Template5: React.FC<Template5Props> = ({
         <div
           style={{
             position: "absolute",
-            bottom: captionSettings.position === "bottom" ? "100px" : undefined,
-            top: captionSettings.position === "top" ? "100px" : undefined,
+            // Use dynamic position from getCaptionPosition
+            bottom:
+              captionSettings.position === "top"
+                ? undefined
+                : getCaptionPosition(),
+            top:
+              captionSettings.position === "top"
+                ? "100px"
+                : captionSettings.position === "center"
+                ? "50%"
+                : undefined,
             left: "50%",
             transform:
               captionSettings.position === "center"
@@ -354,7 +467,7 @@ export const Template5: React.FC<Template5Props> = ({
                 : "translateX(-50%)",
             zIndex: 200,
             opacity: getCaptionOpacity(),
-            maxWidth: "90%",
+            maxWidth: "100%",
             textAlign: "center",
           }}
         >
