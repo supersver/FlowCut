@@ -4,6 +4,7 @@ import { Template1 } from "./templates/Template1";
 import { Template2 } from "./templates/Template2";
 import { Template3 } from "./templates/Template3";
 import { Template4 } from "./templates/Template4";
+import { Template5 } from "./templates/Template5";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -71,6 +72,28 @@ export const RemotionRoot: React.FC = () => {
           phoneName: "Vivo X200",
           presenterVideoUrl: staticFile("presenter-video.mp4"),
           customClips: [],
+        }}
+      />
+      <Composition
+        id="template5"
+        component={Template5 as unknown as React.FC<Record<string, unknown>>}
+        durationInFrames={1200}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          recipientName: "Jayant",
+          presenterVideoUrl: "",
+          logoUrl: "",
+          musicTracks: [],
+          captions: [],
+          userName: "Jayant Bhakhri",
+          cardNumber: "•••• •••• •••• 4832",
+          limitUtilised: 49,
+          totalLimit: 500000,
+          availableLimit: 255000,
+          brandText: "SMART BANK OF INDIA",
+          ctaText: "Choose your EMI plan",
         }}
       />
     </>

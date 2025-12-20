@@ -6,6 +6,7 @@ import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
 import { Template3 } from "@/remotion/templates/Template3";
 import { Template4 } from "@/remotion/templates/Template4";
+import { Template5 } from "@/remotion/templates/Template5";
 import { Timeline } from "./components/Timeline";
 import {
   parseSrt,
@@ -91,6 +92,14 @@ const templates: TemplateConfig[] = [
     duration: 750,
     component: Template4,
   },
+  {
+    id: "template5",
+    name: "HDFC Financial Services",
+    description:
+      "Credit card with spending analytics, merchant breakdown & EMI options.",
+    duration: 1200,
+    component: Template5,
+  },
 ];
 
 export default function Home() {
@@ -116,6 +125,14 @@ export default function Home() {
     DEFAULT_CAPTION_SETTINGS
   );
   const [usePhoneTease, setUsePhoneTease] = useState(true);
+  // Template5 specific props
+  const [t5UserName, setT5UserName] = useState("Jayant Bhakhri");
+  const [t5CardNumber, setT5CardNumber] = useState("•••• •••• •••• 4832");
+  const [t5LimitUtilised, setT5LimitUtilised] = useState(49);
+  const [t5TotalLimit, setT5TotalLimit] = useState(500000);
+  const [t5AvailableLimit, setT5AvailableLimit] = useState(255000);
+  const [t5BrandText, setT5BrandText] = useState("SMART BANK OF INDIA");
+  const [t5CtaText, setT5CtaText] = useState("Choose your EMI plan");
   // Music tracks (supports multiple)
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
@@ -340,6 +357,22 @@ export default function Home() {
                   captions,
                   captionSettings,
                   usePhoneTease,
+                }
+              : selectedTemplate.id === "template5"
+              ? {
+                  recipientName,
+                  presenterVideoUrl,
+                  logoUrl,
+                  musicTracks,
+                  captions,
+                  captionSettings,
+                  userName: t5UserName,
+                  cardNumber: t5CardNumber,
+                  limitUtilised: t5LimitUtilised,
+                  totalLimit: t5TotalLimit,
+                  availableLimit: t5AvailableLimit,
+                  brandText: t5BrandText,
+                  ctaText: t5CtaText,
                 }
               : {
                   productImages,
@@ -680,6 +713,22 @@ export default function Home() {
                         captionSettings,
                         usePhoneTease,
                       }
+                    : selectedTemplate.id === "template5"
+                    ? {
+                        recipientName,
+                        presenterVideoUrl,
+                        logoUrl,
+                        musicTracks,
+                        captions,
+                        captionSettings,
+                        userName: t5UserName,
+                        cardNumber: t5CardNumber,
+                        limitUtilised: t5LimitUtilised,
+                        totalLimit: t5TotalLimit,
+                        availableLimit: t5AvailableLimit,
+                        brandText: t5BrandText,
+                        ctaText: t5CtaText,
+                      }
                     : {
                         productImages,
                         reviewText,
@@ -921,6 +970,237 @@ export default function Home() {
                         Clear captions
                       </button>
                     </div>
+                  )}
+                </div>
+              </>
+            ) : selectedTemplate.id === "template5" ? (
+              <>
+                {/* Template5 Properties */}
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Recipient Name
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:border-blue-500 outline-none"
+                    placeholder="e.g. Jayant"
+                  />
+                </div>
+
+                {/* Presenter Video */}
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Presenter Video
+                  </label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handlePresenterVideoUpload}
+                      className="hidden"
+                    />
+                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
+                      {presenterVideoUrl ? "✓ Video loaded" : "+ Upload video"}
+                    </div>
+                  </label>
+                  {presenterVideoUrl && (
+                    <button
+                      onClick={() => setPresenterVideoUrl("")}
+                      className="mt-1 text-[10px] text-red-400"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {/* Logo */}
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Brand Logo
+                  </label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
+                      {logoUrl ? "✓ Logo loaded" : "+ Upload logo"}
+                    </div>
+                  </label>
+                </div>
+
+                {/* Credit Card Settings */}
+                <div className="border-t border-slate-700 pt-3">
+                  <h4 className="text-[11px] font-medium text-slate-300 mb-2">
+                    Credit Card Settings
+                  </h4>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">
+                        Cardholder Name
+                      </label>
+                      <input
+                        type="text"
+                        value={t5UserName}
+                        onChange={(e) => setT5UserName(e.target.value)}
+                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">
+                        Card Number (masked)
+                      </label>
+                      <input
+                        type="text"
+                        value={t5CardNumber}
+                        onChange={(e) => setT5CardNumber(e.target.value)}
+                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="block text-[10px] text-slate-500 mb-0.5">
+                          Limit Used (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={t5LimitUtilised}
+                          onChange={(e) =>
+                            setT5LimitUtilised(parseInt(e.target.value) || 0)
+                          }
+                          className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[10px] text-slate-500 mb-0.5">
+                          Total Limit (₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={t5TotalLimit}
+                          onChange={(e) =>
+                            setT5TotalLimit(parseInt(e.target.value) || 0)
+                          }
+                          className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">
+                        Available Limit (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={t5AvailableLimit}
+                        onChange={(e) =>
+                          setT5AvailableLimit(parseInt(e.target.value) || 0)
+                        }
+                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA Settings */}
+                <div className="border-t border-slate-700 pt-3">
+                  <h4 className="text-[11px] font-medium text-slate-300 mb-2">
+                    Closing CTA
+                  </h4>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">
+                        Brand Text
+                      </label>
+                      <input
+                        type="text"
+                        value={t5BrandText}
+                        onChange={(e) => setT5BrandText(e.target.value)}
+                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">
+                        CTA Button Text
+                      </label>
+                      <input
+                        type="text"
+                        value={t5CtaText}
+                        onChange={(e) => setT5CtaText(e.target.value)}
+                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Music tracks */}
+                <div className="border-t border-slate-700 pt-3">
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Background Music
+                  </label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleMusicUpload}
+                      className="hidden"
+                    />
+                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
+                      + Add music track
+                    </div>
+                  </label>
+                  {musicTracks.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {musicTracks.map((track, i) => (
+                        <div
+                          key={track.id}
+                          className="flex items-center justify-between rounded bg-slate-800/50 px-2 py-1.5"
+                        >
+                          <span className="text-[10px] text-slate-300">
+                            Track {i + 1}
+                          </span>
+                          <button
+                            onClick={() => removeMusicTrack(track.id)}
+                            className="text-[10px] text-red-400"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Captions */}
+                <div className="border-t border-slate-700 pt-3">
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Captions (SRT)
+                  </label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept=".srt"
+                      onChange={handleSrtUpload}
+                      className="hidden"
+                    />
+                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
+                      {captions.length > 0
+                        ? `✓ ${captions.length} captions`
+                        : "+ Upload SRT file"}
+                    </div>
+                  </label>
+                  {captions.length > 0 && (
+                    <button
+                      onClick={() => setCaptions([])}
+                      className="mt-1 text-[10px] text-red-400"
+                    >
+                      Clear captions
+                    </button>
                   )}
                 </div>
               </>
