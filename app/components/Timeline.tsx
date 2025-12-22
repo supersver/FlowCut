@@ -10,6 +10,14 @@ interface CustomClip {
   type: "image" | "video";
 }
 
+interface MusicTrack {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  volume: number;
+}
+
 interface TimelineProps {
   currentFrame: number;
   durationInFrames: number;
@@ -17,12 +25,14 @@ interface TimelineProps {
   customClips: CustomClip[];
   onSeek: (frame: number) => void;
   onClipUpdate: (id: string, startFrame: number, endFrame: number) => void;
-  // Music props
-  musicUrl?: string;
-  musicVolume?: number;
+  // Music props (array of tracks)
+  musicTracks?: MusicTrack[];
   onMusicUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onMusicVolumeChange?: (volume: number) => void;
-  onMusicRemove?: () => void;
+  onMusicTrackUpdate?: (
+    id: string,
+    updates: Partial<Omit<MusicTrack, "id" | "url">>
+  ) => void;
+  onMusicTrackRemove?: (id: string) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -32,15 +42,21 @@ export const Timeline: React.FC<TimelineProps> = ({
   customClips,
   onSeek,
   onClipUpdate,
-  musicUrl,
-  musicVolume = 0.5,
+  musicTracks = [],
   onMusicUpload,
-  onMusicVolumeChange,
-  onMusicRemove,
+  onMusicTrackUpdate,
+  onMusicTrackRemove,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [draggingClip, setDraggingClip] = useState<{
+    id: string;
+    type: "move" | "resize-start" | "resize-end";
+    startX: number;
+    originalStart: number;
+    originalEnd: number;
+  } | null>(null);
+  const [draggingMusic, setDraggingMusic] = useState<{
     id: string;
     type: "move" | "resize-start" | "resize-end";
     startX: number;
@@ -171,6 +187,82 @@ export const Timeline: React.FC<TimelineProps> = ({
     };
   }, [draggingClip, durationInFrames, fps, onClipUpdate]);
 
+  // Music drag handling
+  const handleMusicMouseDown = useCallback(
+    (
+      e: React.MouseEvent,
+      track: MusicTrack,
+      type: "move" | "resize-start" | "resize-end"
+    ) => {
+      e.stopPropagation();
+      setDraggingMusic({
+        id: track.id,
+        type,
+        startX: e.clientX,
+        originalStart: track.startFrame,
+        originalEnd: track.endFrame,
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!draggingMusic || !onMusicTrackUpdate) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = timelineRef.current?.getBoundingClientRect();
+      if (!rect || !draggingMusic) return;
+
+      const deltaX = e.clientX - draggingMusic.startX;
+      const deltaFrames = Math.round((deltaX / rect.width) * durationInFrames);
+
+      let newStart = draggingMusic.originalStart;
+      let newEnd = draggingMusic.originalEnd;
+
+      if (draggingMusic.type === "move") {
+        const clipDuration =
+          draggingMusic.originalEnd - draggingMusic.originalStart;
+        newStart = Math.max(0, draggingMusic.originalStart + deltaFrames);
+        newEnd = newStart + clipDuration;
+
+        if (newEnd > durationInFrames) {
+          newEnd = durationInFrames;
+          newStart = newEnd - clipDuration;
+        }
+      } else if (draggingMusic.type === "resize-start") {
+        newStart = Math.max(
+          0,
+          Math.min(
+            draggingMusic.originalEnd - fps,
+            draggingMusic.originalStart + deltaFrames
+          )
+        );
+      } else if (draggingMusic.type === "resize-end") {
+        newEnd = Math.max(
+          draggingMusic.originalStart + fps,
+          Math.min(durationInFrames, draggingMusic.originalEnd + deltaFrames)
+        );
+      }
+
+      onMusicTrackUpdate(draggingMusic.id, {
+        startFrame: newStart,
+        endFrame: newEnd,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setDraggingMusic(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [draggingMusic, durationInFrames, fps, onMusicTrackUpdate]);
+
   return (
     <div className="rounded-2xl relative border border-slate-800 bg-slate-900/70 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -205,6 +297,152 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div className="h-2 w-px bg-slate-700" />
           </div>
         ))}
+      </div>
+
+      {/* Music Tracks - Above Main Timeline */}
+      <div className="mb-1 relative">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] text-slate-500">
+            🎵 Audio ({musicTracks.length})
+          </span>
+          <label className="text-[9px] text-blue-400 hover:text-blue-300 cursor-pointer ml-auto">
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={onMusicUpload}
+              className="hidden"
+            />
+            + Add Music
+          </label>
+        </div>
+        <div
+          className="relative rounded-lg bg-slate-950/80 border border-slate-800 overflow-hidden"
+          style={{
+            minHeight:
+              musicTracks.length > 0
+                ? `${musicTracks.length * 28 + 8}px`
+                : "32px",
+          }}
+        >
+          {musicTracks.length === 0 ? (
+            <label className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-slate-800/30 transition">
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={onMusicUpload}
+                className="hidden"
+              />
+              <span className="text-[10px] text-slate-500">
+                + Click to add music
+              </span>
+            </label>
+          ) : (
+            <>
+              {/* Render each music track */}
+              {musicTracks.map((track, index) => (
+                <div
+                  key={track.id}
+                  className="absolute left-0 right-0"
+                  style={{ top: `${4 + index * 28}px`, height: "24px" }}
+                >
+                  {/* Track bar */}
+                  <div
+                    className={`absolute top-0 bottom-0 rounded-md bg-gradient-to-r from-emerald-600 to-emerald-500 transition-all ${
+                      draggingMusic?.id === track.id
+                        ? "ring-2 ring-white/50"
+                        : ""
+                    }`}
+                    style={{
+                      left: `${(track.startFrame / durationInFrames) * 100}%`,
+                      width: `${
+                        ((track.endFrame - track.startFrame) /
+                          durationInFrames) *
+                        100
+                      }%`,
+                      minWidth: "60px",
+                    }}
+                  >
+                    {/* Waveform bars */}
+                    <div className="absolute inset-0 flex items-center justify-around px-1 overflow-hidden">
+                      {Array.from({ length: 20 }).map((_, i) => {
+                        const height = 30 + Math.sin(i * 0.8 + index) * 25 + 10;
+                        return (
+                          <div
+                            key={i}
+                            className="w-0.5 rounded-full bg-white/30"
+                            style={{ height: `${height}%` }}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Resize Handle - Start */}
+                    <div
+                      className="absolute left-0 top-0 h-full w-2 cursor-ew-resize bg-white/30 hover:bg-white/50 transition rounded-l-md"
+                      onMouseDown={(e) =>
+                        handleMusicMouseDown(e, track, "resize-start")
+                      }
+                    />
+
+                    {/* Move Handle - Middle with controls */}
+                    <div
+                      className="absolute inset-x-2 inset-y-0 cursor-grab flex items-center justify-between px-1"
+                      onMouseDown={(e) =>
+                        handleMusicMouseDown(e, track, "move")
+                      }
+                    >
+                      <span className="text-[9px] font-medium text-white/80">
+                        🎵
+                      </span>
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={track.volume}
+                          onChange={(e) =>
+                            onMusicTrackUpdate?.(track.id, {
+                              volume: parseFloat(e.target.value),
+                            })
+                          }
+                          className="w-10 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMusicTrackRemove?.(track.id);
+                          }}
+                          className="text-[8px] text-red-300 hover:text-red-200"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Resize Handle - End */}
+                    <div
+                      className="absolute right-0 top-0 h-full w-2 cursor-ew-resize bg-white/30 hover:bg-white/50 transition rounded-r-md"
+                      onMouseDown={(e) =>
+                        handleMusicMouseDown(e, track, "resize-end")
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {/* Playhead on music track */}
+              <div
+                className="absolute top-0 h-full w-0.5 bg-blue-400/70 pointer-events-none z-10"
+                style={{ left: `${playheadPosition}%` }}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main Timeline Track */}
@@ -303,132 +541,17 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
 
       {/* Instructions */}
-      {customClips.length === 0 && !musicUrl && (
+      {customClips.length === 0 && musicTracks.length === 0 && (
         <p className="mt-2 text-center text-[11px] text-slate-500">
           Add custom clips above to see them on the timeline. Click anywhere to
           seek.
         </p>
       )}
-      {(customClips.length > 0 || musicUrl) && (
+      {(customClips.length > 0 || musicTracks.length > 0) && (
         <p className="mt-2 text-center text-[11px] text-slate-500">
           Drag clips to move • Drag edges to resize • Click to seek
         </p>
       )}
-
-      {/* Music Track Section */}
-      <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">🎵</span>
-            <span className="text-xs font-medium text-slate-200">
-              Background Music
-            </span>
-          </div>
-          {musicUrl && onMusicRemove && (
-            <button
-              type="button"
-              onClick={onMusicRemove}
-              className="text-xs text-red-400 hover:text-red-300"
-            >
-              Remove
-            </button>
-          )}
-        </div>
-
-        {!musicUrl ? (
-          <label className="block">
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={onMusicUpload}
-              className="hidden"
-            />
-            <div className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-700 py-3 text-center hover:border-slate-600 transition">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-                  />
-                </svg>
-                <span className="text-xs text-slate-400">
-                  Click to add background music
-                </span>
-              </div>
-            </div>
-          </label>
-        ) : (
-          <div className="space-y-3">
-            {/* Music waveform visualization */}
-            <div className="relative h-10 rounded-lg bg-slate-800/50 overflow-hidden">
-              {/* Fake waveform bars */}
-              <div className="absolute inset-0 flex items-center justify-around px-1">
-                {Array.from({ length: 50 }).map((_, i) => {
-                  const height =
-                    20 + Math.sin(i * 0.5) * 15 + Math.random() * 10;
-                  const isActive = (i / 50) * 100 <= playheadPosition;
-                  return (
-                    <div
-                      key={i}
-                      className={`w-1 rounded-full transition-colors ${
-                        isActive
-                          ? "bg-gradient-to-t from-emerald-500 to-emerald-400"
-                          : "bg-slate-600"
-                      }`}
-                      style={{ height: `${height}%` }}
-                    />
-                  );
-                })}
-              </div>
-              {/* Playhead indicator on music track */}
-              <div
-                className="absolute top-0 h-full w-0.5 bg-white/50"
-                style={{ left: `${playheadPosition}%` }}
-              />
-            </div>
-
-            {/* Volume control */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-                <span className="text-[11px] text-slate-400 min-w-[40px]">
-                  {Math.round(musicVolume * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={musicVolume}
-                onChange={(e) =>
-                  onMusicVolumeChange?.(parseFloat(e.target.value))
-                }
-                className="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-              />
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

@@ -1,9 +1,10 @@
 import React from "react";
-import { Composition, registerRoot } from "remotion";
+import { Composition, registerRoot, staticFile } from "remotion";
 import { Template1 } from "./templates/Template1";
 import { Template2 } from "./templates/Template2";
 import { Template3 } from "./templates/Template3";
 import { Template4 } from "./templates/Template4";
+import { Template5 } from "./templates/Template5";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -69,9 +70,30 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           recipientName: "Mayank",
           phoneName: "Vivo X200",
-          presenterVideoUrl:
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // Placeholder for verification
+          presenterVideoUrl: staticFile("presenter-video.mp4"),
           customClips: [],
+        }}
+      />
+      <Composition
+        id="template5"
+        component={Template5 as unknown as React.FC<Record<string, unknown>>}
+        durationInFrames={1050}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          recipientName: "Jayant",
+          presenterVideoUrl: staticFile("template-5-presenter-video.mp4"),
+          logoUrl: staticFile("bank logo.png"),
+          musicTracks: [],
+          captions: [],
+          userName: "Jayant Bhakhri",
+          cardNumber: "•••• •••• •••• 6959",
+          limitUtilised: 49,
+          totalLimit: 500000,
+          availableLimit: 255000,
+          brandText: "HDFC BANK PVT. LTD.",
+          ctaText: "Choose your EMI plan",
         }}
       />
     </>
