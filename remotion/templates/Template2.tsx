@@ -4,20 +4,20 @@ import {
   useCurrentFrame,
   interpolate,
   Sequence,
-  Img,
-  Video,
+  OffthreadVideo,
   Audio,
-  spring,
-  useVideoConfig,
+  Img,
 } from "remotion";
-
-interface CustomClip {
-  id: string;
-  url: string;
-  startFrame: number;
-  endFrame: number;
-  type: "image" | "video";
-}
+import { GreetingBanner } from "./Template2/Components/GreetingBanner";
+import { CreditCard } from "./Template2/Components/CreditCard";
+import { SpendingCategories } from "./Template2/Components/SpendingCategories";
+import { MerchantList } from "./Template2/Components/MerchantList";
+import { EMICard } from "./Template2/Components/EMICard";
+import { ClosingCTA } from "./Template2/Components/ClosingCTA";
+import {
+  SCENE_COMPONENT_REGISTRY,
+  DEFAULT_SCENE_ELEMENT_MAP,
+} from "./SceneRegistry";
 
 interface MusicTrack {
   id: string;
@@ -27,129 +27,211 @@ interface MusicTrack {
   volume: number;
 }
 
-interface Template2Props {
-  productImages: string[];
-  reviewText: string;
-  reviewAuthor: string;
-  rating: number;
-  customClips?: CustomClip[];
-  musicTracks?: MusicTrack[];
+interface CustomClip {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  type: "image" | "video";
+  layer: number;
 }
 
+interface CaptionItem {
+  id: string;
+  startFrame: number;
+  endFrame: number;
+  text: string;
+}
+
+interface CaptionSettings {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  position: "top" | "center" | "bottom";
+}
+
+interface Category {
+  name: string;
+  percentage: number;
+  amount: number;
+  icon: string;
+}
+
+interface Merchant {
+  name: string;
+  logo?: string;
+  count: number;
+  total: number;
+}
+
+interface EMITransaction {
+  name: string;
+  amount: number;
+  emiMonths: number;
+  emiAmount: number;
+}
+
+interface SceneTiming {
+  id: string;
+  name: string;
+  startFrame: number;
+  endFrame: number;
+  color: string;
+  elementId?: string; // Links to SCENE_ELEMENTS.id for dynamic rendering
+}
+
+interface Template2Props {
+  recipientName: string;
+  presenterVideoUrl?: string;
+  logoUrl?: string;
+  musicTracks?: MusicTrack[];
+  customClips?: CustomClip[];
+  captions?: CaptionItem[];
+  captionSettings?: CaptionSettings;
+
+  // Template 5 specific
+  userName?: string;
+  cardNumber?: string;
+  limitUtilised?: number;
+  totalLimit?: number;
+  availableLimit?: number;
+  categories?: Category[];
+  merchants?: Merchant[];
+  emiTransactions?: EMITransaction[];
+  brandText?: string;
+  ctaText?: string;
+  sceneTimings?: SceneTiming[];
+}
+
+// Default data for preview
+const DEFAULT_CATEGORIES: Category[] = [
+  { name: "Dining", percentage: 40, amount: 12500, icon: "🍽️" },
+  { name: "Travel", percentage: 30, amount: 9500, icon: "✈️" },
+  { name: "Electronics", percentage: 20, amount: 6200, icon: "📱" },
+  { name: "Shopping", percentage: 10, amount: 3100, icon: "🛍️" },
+];
+
+const DEFAULT_MERCHANTS: Merchant[] = [
+  { name: "Vivanta Hotels", count: 3, total: 45000 },
+  { name: "MakeMyTrip", count: 5, total: 32000 },
+  { name: "Shoppers Stop", count: 8, total: 18500 },
+  { name: "Amazon", count: 12, total: 15200 },
+  { name: "Swiggy", count: 25, total: 8500 },
+];
+
+const DEFAULT_EMI_TRANSACTIONS: EMITransaction[] = [
+  { name: "Vivanta Hotels", amount: 45000, emiMonths: 6, emiAmount: 7500 },
+  { name: 'MakeMyTrip"', amount: 32000, emiMonths: 12, emiAmount: 2666 },
+  { name: "Shoppers Stop", amount: 18500, emiMonths: 6, emiAmount: 3083 },
+];
+
 export const Template2: React.FC<Template2Props> = ({
-  productImages,
-  reviewText,
-  reviewAuthor,
-  rating,
-  customClips = [],
+  recipientName,
+  presenterVideoUrl,
+  logoUrl,
   musicTracks = [],
+  customClips = [],
+  captions: captionsProp,
+  captionSettings: captionSettingsProp,
+  userName = "Jayant Bhakhri",
+  cardNumber = "•••• •••• •••• 6959",
+  limitUtilised = 49,
+  totalLimit = 500000,
+  availableLimit = 255000,
+  categories = DEFAULT_CATEGORIES,
+  merchants = DEFAULT_MERCHANTS,
+  emiTransactions = DEFAULT_EMI_TRANSACTIONS,
+  brandText = "HDFC BANK PVT. LTD.",
+  ctaText = "Choose your EMI plan",
+  sceneTimings, // Used for dynamic scene rendering
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
 
-  // Check for active custom clip
-  const activeClip = customClips.find(
-    (clip) => frame >= clip.startFrame && frame < clip.endFrame
+  // ============================================
+  // SCENE TIMING (at 30fps) - 35 second video
+  // ============================================
+  // Scene 1: Intro + Greeting Banner    | 0-90 frames (0-3s)
+  // Scene 2: Credit Card                | 90-240 frames (3-8s)
+  // Scene 3: Spending Categories        | 240-480 frames (8-16s)
+  // Scene 4: Merchant List              | 480-630 frames (16-21s)
+  // Scene 5: EMI Card                   | 630-780 frames (21-26s)
+  // (Presenter only)                    | 780-930 frames (26-31s)
+  // Scene 6: Closing CTA                | 930-1050 frames (31-35s)
+  // Total: 1050 frames (35s)
+
+  // Presenter video visibility
+  // Show during intro, credit card, EMI card, presenter-only, and closing
+  // Hide during app interface (Spending Categories & Merchant List: 240-630)
+  const presenterOpacity = interpolate(
+    frame,
+    [0, 90, 240, 260, 600, 630],
+    [1, 1, 1, 0.0001, 0.0001, 1],
+    { extrapolateRight: "clamp" }
   );
 
-  if (activeClip) {
-    const clipFrame = frame - activeClip.startFrame;
-    const clipDuration = activeClip.endFrame - activeClip.startFrame;
-    const fadeInOut = interpolate(
-      clipFrame,
-      [0, 15, clipDuration - 15, clipDuration],
-      [0, 1, 1, 0],
-      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-    );
+  // ============================================
+  // CAPTIONS LOGIC (same UI as Template 4)
+  // ============================================
+  // Captions are only shown when an SRT file is uploaded (no hardcoded defaults)
+  const captions = captionsProp && captionsProp.length > 0 ? captionsProp : [];
 
-    return (
-      <AbsoluteFill className="bg-black">
-        {activeClip.type === "video" ? (
-          <AbsoluteFill>
-            <Video
-              src={activeClip.url}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                opacity: fadeInOut,
-              }}
-              volume={0}
-              playbackRate={1}
-            />
-          </AbsoluteFill>
-        ) : (
-          <AbsoluteFill style={{ opacity: fadeInOut }}>
-            <Img
-              src={activeClip.url}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          </AbsoluteFill>
-        )}
-      </AbsoluteFill>
-    );
-  }
-
-  // Carousel logic with improved timing
-  const imageDuration = 120; // 4 seconds per image
-  const currentImageIndex =
-    Math.floor(frame / imageDuration) % productImages.length;
-  const frameInImage = frame % imageDuration;
-
-  // Smooth zoom and fade for each image
-  const imageScale = interpolate(
-    frameInImage,
-    [0, 30, 90, 120],
-    [1.1, 1, 1, 1.05],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-  );
-
-  const imageOpacity = interpolate(
-    frameInImage,
-    [0, 20, 100, 120],
-    [0, 1, 1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-  );
-
-  // Ken Burns subtle movement
-  const panX = interpolate(frameInImage, [0, 120], [-10, 10]);
-  const panY = interpolate(frameInImage, [0, 120], [-5, 5]);
-
-  // Animated gradient background
-  const gradientRotate = frame * 0.5;
-
-  // Review card animations (starts at frame 400)
-  const reviewFrame = Math.max(0, frame - 400);
-  const cardSpring = spring({
-    frame: reviewFrame,
-    fps,
-    config: { damping: 15, stiffness: 90 },
-  });
-
-  // Stars bounce in one by one
-  const getStarBounce = (index: number) => {
-    const starFrame = Math.max(0, frame - 430 - index * 8);
-    return spring({
-      frame: starFrame,
-      fps,
-      config: { damping: 8, stiffness: 180 },
-    });
+  const captionSettings: CaptionSettings = {
+    fontFamily: captionSettingsProp?.fontFamily || "Inter",
+    fontSize: captionSettingsProp?.fontSize || 44,
+    color: captionSettingsProp?.color || "#ffffff",
+    backgroundColor:
+      captionSettingsProp?.backgroundColor || "rgba(0, 0, 0, 0.5)",
+    position: captionSettingsProp?.position || "bottom",
   };
 
-  // Glow animation
-  const glowPulse = interpolate(Math.sin(frame * 0.06), [-1, 1], [0.4, 0.8]);
+  const currentCaption = captions.find(
+    (cap) => frame >= cap.startFrame && frame < cap.endFrame
+  );
+
+  // Caption position - moves above credit card when it's at bottom (frames 280-930)
+  const getCaptionPosition = () => {
+    const isCreditCardAtBottom = frame >= 280 && frame < 930;
+
+    switch (captionSettings.position) {
+      case "top":
+        return "100px";
+      case "center":
+        return "50%";
+      case "bottom":
+      default:
+        // When credit card is at bottom, position caption higher (above the card)
+        return isCreditCardAtBottom ? "330px" : "100px";
+    }
+  };
+
+  const getCaptionOpacity = () => {
+    if (!currentCaption) return 0;
+    const fadeInEnd = currentCaption.startFrame + 5;
+    const fadeOutStart = currentCaption.endFrame - 5;
+
+    if (frame < fadeInEnd) {
+      return interpolate(
+        frame,
+        [currentCaption.startFrame, fadeInEnd],
+        [0, 1],
+        { extrapolateRight: "clamp" }
+      );
+    }
+    if (frame > fadeOutStart) {
+      return interpolate(
+        frame,
+        [fadeOutStart, currentCaption.endFrame],
+        [1, 0],
+        { extrapolateRight: "clamp" }
+      );
+    }
+    return 1;
+  };
 
   return (
-    <AbsoluteFill
-      style={{
-        background: `linear-gradient(${gradientRotate}deg, #059669, #0D9488, #0891B2)`,
-      }}
-    >
-      {/* Background Music Tracks - with proper timing */}
+    <AbsoluteFill style={{ background: "#0a0a15" }}>
+      {/* Background Music Tracks */}
       {musicTracks.map((track) => (
         <Sequence
           key={track.id}
@@ -160,209 +242,323 @@ export const Template2: React.FC<Template2Props> = ({
         </Sequence>
       ))}
 
-      {/* Decorative circles */}
-      <div
-        style={{
-          position: "absolute",
-          top: "-200px",
-          right: "-200px",
-          width: "600px",
-          height: "600px",
-          borderRadius: "50%",
-          background: "rgba(255, 255, 255, 0.1)",
-          filter: "blur(60px)",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: "-300px",
-          left: "-200px",
-          width: "700px",
-          height: "700px",
-          borderRadius: "50%",
-          background: "rgba(255, 255, 255, 0.08)",
-          filter: "blur(80px)",
-        }}
-      />
+      {/* ============================================ */}
+      {/* GLOBAL LAYERS */}
+      {/* ============================================ */}
 
-      {/* Carousel - First 400 frames */}
-      <Sequence from={0} durationInFrames={400}>
+      {/* Logo on top-right */}
+      {logoUrl && frame < 930 && (
         <div
           style={{
-            display: "flex",
-            height: "100%",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "60px",
+            position: "absolute",
+            top: "40px",
+            right: "40px",
+            zIndex: 100,
+            opacity: interpolate(frame, [0, 30], [0, 1], {
+              extrapolateRight: "clamp",
+            }),
           }}
         >
-          <div
+          {/* <div
             style={{
-              position: "relative",
-              opacity: imageOpacity,
-              transform: `scale(${imageScale}) translate(${panX}px, ${panY}px)`,
+              padding: "12px 16px",
+              background: "rgba(255, 255, 255, 0.95)",
+              borderRadius: "12px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
             }}
-          >
-            {/* Image glow */}
-            <div
-              style={{
-                position: "absolute",
-                inset: "-30px",
-                background: `rgba(255, 255, 255, ${glowPulse * 0.3})`,
-                borderRadius: "48px",
-                filter: "blur(40px)",
-              }}
-            />
-
-            {/* Main image */}
-            <Img
-              src={productImages[currentImageIndex]}
-              style={{
-                width: "600px",
-                height: "600px",
-                borderRadius: "40px",
-                objectFit: "cover",
-                boxShadow: "0 40px 80px -20px rgba(0, 0, 0, 0.5)",
-                border: "6px solid rgba(255, 255, 255, 0.3)",
-                position: "relative",
-              }}
-            />
-
-            {/* Image counter */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "30px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                display: "flex",
-                gap: "12px",
-              }}
-            >
-              {productImages.map((_, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    width: idx === currentImageIndex ? "40px" : "12px",
-                    height: "12px",
-                    borderRadius: "6px",
-                    background:
-                      idx === currentImageIndex
-                        ? "rgba(255, 255, 255, 1)"
-                        : "rgba(255, 255, 255, 0.4)",
-                    transition: "all 0.3s ease",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+          > */}
+          <img
+            src={logoUrl}
+            alt="Logo"
+            style={{
+              height: "90px",
+              width: "auto",
+              maxWidth: "250px",
+              objectFit: "contain",
+            }}
+          />
+          {/* </div> */}
         </div>
-      </Sequence>
+      )}
 
-      {/* Review Section - After 400 frames */}
-      <Sequence from={400}>
-        <div
-          style={{
-            display: "flex",
-            height: "100%",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "60px",
-          }}
-        >
+      {/* Global Presenter Video Layer */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          opacity: presenterOpacity,
+        }}
+      >
+        {presenterVideoUrl ? (
+          <OffthreadVideo
+            src={presenterVideoUrl}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+            volume={1}
+          />
+        ) : (
           <div
             style={{
               width: "100%",
-              maxWidth: "850px",
-              background: "rgba(255, 255, 255, 0.97)",
-              backdropFilter: "blur(24px)",
-              borderRadius: "48px",
-              padding: "60px 70px",
-              textAlign: "center",
-              boxShadow: "0 40px 80px -20px rgba(0, 0, 0, 0.35)",
-              transform: `scale(${cardSpring}) translateY(${interpolate(
-                cardSpring,
-                [0, 1],
-                [60, 0]
-              )}px)`,
-              opacity: cardSpring,
+              height: "100%",
+              background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {/* Stars */}
             <div
               style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "16px",
-                marginBottom: "36px",
+                width: 200,
+                height: 200,
+                borderRadius: "50%",
+                background: "#2a2a4e",
               }}
-            >
-              {Array.from({ length: rating }).map((_, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    fontSize: "60px",
-                    color: "#FBBF24",
-                    display: "inline-block",
-                    transform: `scale(${getStarBounce(idx)})`,
-                    textShadow: "0 6px 20px rgba(251, 191, 36, 0.4)",
-                  }}
-                >
-                  ★
-                </span>
-              ))}
-            </div>
+            />
+          </div>
+        )}
+      </div>
 
-            {/* Quote */}
-            <p
-              style={{
-                fontSize: "44px",
-                fontWeight: "600",
-                fontStyle: "italic",
-                color: "#1F2937",
-                lineHeight: 1.4,
-                marginBottom: "32px",
-              }}
-            >
-              &ldquo;{reviewText}&rdquo;
-            </p>
+      {/* Gradient overlay for presenter */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%)",
+          zIndex: 1,
+          opacity: presenterOpacity,
+        }}
+      />
 
-            {/* Author with verified badge */}
-            <div
+      {/* ============================================ */}
+      {/* SCENES */}
+      {/* ============================================ */}
+
+      {/* Scene 1: Intro + Greeting Banner (0-90 frames) */}
+      <Sequence from={0} durationInFrames={90} style={{ zIndex: 10 }}>
+        <GreetingBanner recipientName={recipientName} />
+      </Sequence>
+
+      {/* PERSISTENT CREDIT CARD (90-930 frames) */}
+      {/* Appears at frame 90, transitions to bottom at 240, fades out at 930 */}
+      {frame >= 90 && frame < 930 && (
+        <CreditCard
+          userName={userName}
+          cardNumber={cardNumber}
+          limitUtilised={limitUtilised}
+          totalLimit={totalLimit}
+          availableLimit={availableLimit}
+          logoUrl={logoUrl}
+          globalFrame={frame}
+        />
+      )}
+
+      {/* Scene 3: Spending Categories (240-480 frames = 8s to 16s) */}
+      <Sequence from={240} durationInFrames={240} style={{ zIndex: 30 }}>
+        <SpendingCategories categories={categories} activeTab="category" />
+      </Sequence>
+
+      {/* Scene 4: Merchant List (480-630 frames = 16s to 21s) */}
+      <Sequence from={480} durationInFrames={150} style={{ zIndex: 40 }}>
+        <MerchantList merchants={merchants} />
+      </Sequence>
+
+      {/* Scene 5: EMI Card (630-780 frames = 21s to 26s) */}
+      <Sequence from={630} durationInFrames={150} style={{ zIndex: 50 }}>
+        <EMICard transactions={emiTransactions} />
+      </Sequence>
+
+      {/* Scene 6: Closing CTA (930-1050 frames = 31s to 35s) */}
+      <Sequence from={930} durationInFrames={120} style={{ zIndex: 60 }}>
+        <ClosingCTA logoUrl={logoUrl} brandText={brandText} ctaText={ctaText} />
+      </Sequence>
+
+      {/* ============================================ */}
+      {/* DYNAMIC SCENES - Rendered from sceneTimings array */}
+      {/* ============================================ */}
+      {sceneTimings
+        ?.filter((scene) => {
+          // Only render scenes that have an elementId AND are not default scenes
+          const isDefaultScene = Object.keys(
+            DEFAULT_SCENE_ELEMENT_MAP
+          ).includes(scene.id);
+          return scene.elementId && !isDefaultScene;
+        })
+        .map((scene) => {
+          const Component = scene.elementId
+            ? SCENE_COMPONENT_REGISTRY[scene.elementId]
+            : null;
+          if (!Component) return null;
+
+          return (
+            <Sequence
+              key={scene.id}
+              from={scene.startFrame}
+              durationInFrames={scene.endFrame - scene.startFrame}
+              style={{ zIndex: 65 }}
+            >
+              <Component
+                recipientName={recipientName}
+                userName={userName}
+                cardNumber={cardNumber}
+                limitUtilised={limitUtilised}
+                totalLimit={totalLimit}
+                availableLimit={availableLimit}
+                categories={categories}
+                merchants={merchants}
+                transactions={emiTransactions}
+                logoUrl={logoUrl}
+                brandText={brandText}
+                ctaText={ctaText}
+              />
+            </Sequence>
+          );
+        })}
+
+      {/* ============================================ */}
+      {/* CUSTOM CLIPS - Integrated into video composition */}
+      {/* ============================================ */}
+
+      {/* Background clips (layer 0) - render below scenes */}
+      {customClips
+        .filter((clip) => clip.layer === 0)
+        .map((clip) => (
+          <Sequence
+            key={clip.id}
+            from={clip.startFrame}
+            durationInFrames={clip.endFrame - clip.startFrame}
+            style={{ zIndex: 5 }}
+          >
+            <AbsoluteFill
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "12px",
+                background: "#000",
               }}
             >
-              <span
-                style={{
-                  fontSize: "28px",
-                  fontWeight: "600",
-                  color: "#6B7280",
-                }}
-              >
-                — {reviewAuthor}
-              </span>
-              <span
-                style={{
-                  background: "linear-gradient(135deg, #10B981, #059669)",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  padding: "6px 14px",
-                  borderRadius: "20px",
-                }}
-              >
-                ✓ Verified
-              </span>
-            </div>
+              {clip.type === "video" ? (
+                <OffthreadVideo
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <Img
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              )}
+            </AbsoluteFill>
+          </Sequence>
+        ))}
+
+      {/* Overlay clips (layer 1+) - render above scenes */}
+      {customClips
+        .filter((clip) => clip.layer >= 1)
+        .map((clip) => (
+          <Sequence
+            key={clip.id}
+            from={clip.startFrame}
+            durationInFrames={clip.endFrame - clip.startFrame}
+            style={{ zIndex: 70 + clip.layer }}
+          >
+            <AbsoluteFill
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {clip.type === "video" ? (
+                <OffthreadVideo
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : (
+                <Img
+                  src={clip.url}
+                  style={{
+                    maxWidth: "80%",
+                    maxHeight: "80%",
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                  }}
+                />
+              )}
+            </AbsoluteFill>
+          </Sequence>
+        ))}
+
+      {/* ============================================ */}
+      {/* CAPTIONS OVERLAY */}
+      {/* ============================================ */}
+      {currentCaption && (
+        <div
+          style={{
+            position: "absolute",
+            // Use dynamic position from getCaptionPosition
+            bottom:
+              captionSettings.position === "top"
+                ? undefined
+                : getCaptionPosition(),
+            top:
+              captionSettings.position === "top"
+                ? "100px"
+                : captionSettings.position === "center"
+                ? "50%"
+                : undefined,
+            left: "50%",
+            transform:
+              captionSettings.position === "center"
+                ? "translate(-50%, -50%)"
+                : "translateX(-50%)",
+            zIndex: 200,
+            opacity: getCaptionOpacity(),
+            maxWidth: "100%",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              background: captionSettings.backgroundColor,
+              padding: "16px 32px",
+              borderRadius: "12px",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <span
+              style={{
+                color: captionSettings.color,
+                fontSize: `${captionSettings.fontSize}px`,
+                fontWeight: 600,
+                fontFamily: `'${captionSettings.fontFamily}', 'Segoe UI', sans-serif`,
+                lineHeight: 1.4,
+                textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              }}
+            >
+              {currentCaption.text}
+            </span>
           </div>
         </div>
-      </Sequence>
+      )}
     </AbsoluteFill>
   );
 };

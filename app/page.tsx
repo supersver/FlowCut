@@ -4,9 +4,6 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Player, PlayerRef } from "@remotion/player";
 import { Template1 } from "@/remotion/templates/Template1";
 import { Template2 } from "@/remotion/templates/Template2";
-import { Template3 } from "@/remotion/templates/Template3";
-import { Template4 } from "@/remotion/templates/Template4";
-import { Template5 } from "@/remotion/templates/Template5";
 import { Timeline } from "./components/Timeline";
 import { SceneElementSelectorModal } from "./components/SceneElementSelectorModal";
 import { SceneElement } from "./constants/SCENE_ELEMENTS";
@@ -72,99 +69,99 @@ interface SceneDefinition {
   startFrame: number;
   endFrame: number;
   color: string;
+  elementId?: string; // Links to SCENE_ELEMENTS.id for dynamic rendering
 }
 
-// Default scene definitions for each template (used as initial values)
 const DEFAULT_SCENES: Record<string, SceneDefinition[]> = {
-  template4: [
+  template1: [
     {
-      id: "t4-s1",
+      id: "t1-s1",
       name: "Intro",
       startFrame: 0,
       endFrame: 90,
       color: "linear-gradient(90deg, #3b82f6, #6366f1)",
     },
     {
-      id: "t4-s2",
+      id: "t1-s2",
       name: "Context",
       startFrame: 90,
       endFrame: 210,
       color: "linear-gradient(90deg, #6366f1, #8b5cf6)",
     },
     {
-      id: "t4-s3",
+      id: "t1-s3",
       name: "Promise",
       startFrame: 210,
       endFrame: 420,
       color: "linear-gradient(90deg, #8b5cf6, #a855f7)",
     },
     {
-      id: "t4-s4",
+      id: "t1-s4",
       name: "Phone Reveal",
       startFrame: 420,
       endFrame: 540,
       color: "linear-gradient(90deg, #a855f7, #d946ef)",
     },
     {
-      id: "t4-s5",
+      id: "t1-s5",
       name: "WhatsApp CTA",
       startFrame: 540,
       endFrame: 650,
       color: "linear-gradient(90deg, #d946ef, #ec4899)",
     },
     {
-      id: "t4-s6",
+      id: "t1-s6",
       name: "Outro",
       startFrame: 650,
       endFrame: 750,
       color: "linear-gradient(90deg, #ec4899, #f43f5e)",
     },
   ],
-  template5: [
+  template2: [
     {
-      id: "t5-s1",
+      id: "t2-s1",
       name: "Greeting",
       startFrame: 0,
       endFrame: 90,
       color: "linear-gradient(90deg, #10b981, #14b8a6)",
     },
     {
-      id: "t5-s2",
+      id: "t2-s2",
       name: "Credit Card",
       startFrame: 90,
       endFrame: 240,
       color: "linear-gradient(90deg, #14b8a6, #06b6d4)",
     },
     {
-      id: "t5-s3",
+      id: "t2-s3",
       name: "Spending",
       startFrame: 240,
       endFrame: 480,
       color: "linear-gradient(90deg, #06b6d4, #0ea5e9)",
     },
     {
-      id: "t5-s4",
+      id: "t2-s4",
       name: "Merchants",
       startFrame: 480,
       endFrame: 630,
       color: "linear-gradient(90deg, #0ea5e9, #3b82f6)",
     },
     {
-      id: "t5-s5",
+      id: "t2-s5",
       name: "EMI Card",
       startFrame: 630,
       endFrame: 780,
       color: "linear-gradient(90deg, #3b82f6, #6366f1)",
     },
     {
-      id: "t5-s6",
+      id: "t2-s6",
       name: "Presenter",
       startFrame: 780,
       endFrame: 930,
       color: "linear-gradient(90deg, #6366f1, #8b5cf6)",
     },
     {
-      id: "t5-s7",
+      id: "t2-s7",
       name: "Closing CTA",
       startFrame: 930,
       endFrame: 1050,
@@ -174,41 +171,20 @@ const DEFAULT_SCENES: Record<string, SceneDefinition[]> = {
 };
 
 const templates: TemplateConfig[] = [
-  // {
-  //   id: "template1",
-  //   name: "Modern Slide",
-  //   description: "Showcase multiple products with a clean review card.",
-  //   duration: 450,
-  //   component: Template1,
-  // },
-  // {
-  //   id: "template2",
-  //   name: "Carousel",
-  //   description: "Fade between products, then highlight a review.",
-  //   duration: 600,
-  //   component: Template2,
-  // },
-  // {
-  //   id: "template3",
-  //   name: "Split Screen",
-  //   description: "Hero product at the top with a bold review section.",
-  //   duration: 750,
-  //   component: Template3,
-  // },
   {
-    id: "template4",
+    id: "template1",
     name: "WhatsApp Pre-Launch",
     description: "Personalized video with phone tease & WhatsApp CTA.",
     duration: 750,
-    component: Template4,
+    component: Template1,
   },
   {
-    id: "template5",
+    id: "template2",
     name: "Financial Services",
     description:
       "Credit card with spending analytics, merchant breakdown & EMI options.",
     duration: 1050,
-    component: Template5,
+    component: Template2,
   },
 ];
 
@@ -461,6 +437,7 @@ export default function Home() {
           selectedTemplate.duration
         ),
         color: element.color,
+        elementId: element.id, // Link to scene element for dynamic rendering
       });
 
       setElementSelectorOpen(false);
@@ -881,7 +858,7 @@ export default function Home() {
                 acknowledgeRemotionLicense
                 fps={fps.id}
                 inputProps={
-                  selectedTemplate.id === "template4"
+                  selectedTemplate.id === "template1"
                     ? {
                         recipientName,
                         phoneName,
@@ -895,7 +872,7 @@ export default function Home() {
                         usePhoneTease,
                         sceneTimings: scenes,
                       }
-                    : selectedTemplate.id === "template5"
+                    : selectedTemplate.id === "template2"
                     ? {
                         recipientName,
                         presenterVideoUrl,

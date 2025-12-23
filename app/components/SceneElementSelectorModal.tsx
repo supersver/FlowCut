@@ -36,16 +36,16 @@ export const SceneElementSelectorModal: React.FC<
 
   const getTemplateBadge = (template: SceneElement["template"]) => {
     switch (template) {
-      case "template4":
+      case "template1":
         return (
           <span className="text-[8px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium">
-            T4
+            T1
           </span>
         );
-      case "template5":
+      case "template2":
         return (
           <span className="text-[8px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-medium">
-            T5
+            T2
           </span>
         );
       default:
