@@ -68,6 +68,14 @@ interface EMITransaction {
   emiAmount: number;
 }
 
+interface SceneTiming {
+  id: string;
+  name: string;
+  startFrame: number;
+  endFrame: number;
+  color: string;
+}
+
 interface Template5Props {
   recipientName: string;
   presenterVideoUrl?: string;
@@ -88,6 +96,7 @@ interface Template5Props {
   emiTransactions?: EMITransaction[];
   brandText?: string;
   ctaText?: string;
+  sceneTimings?: SceneTiming[];
 }
 
 // Default data for preview
@@ -130,6 +139,7 @@ export const Template5: React.FC<Template5Props> = ({
   emiTransactions = DEFAULT_EMI_TRANSACTIONS,
   brandText = "HDFC BANK PVT. LTD.",
   ctaText = "Choose your EMI plan",
+  sceneTimings: _sceneTimings, // Accept but not yet used - Template5 has complex persistent elements
 }) => {
   const frame = useCurrentFrame();
 

@@ -39,6 +39,7 @@ interface TimelineProps {
   onClipRemove?: (id: string) => void;
   // Scene props
   scenes?: SceneDefinition[];
+  onSceneUpdate?: (id: string, startFrame: number, endFrame: number) => void;
   // Music props (array of tracks)
   musicTracks?: MusicTrack[];
   onMusicUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -59,6 +60,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   onClipLayerUpdate,
   onClipRemove,
   scenes = [],
+  onSceneUpdate,
   musicTracks = [],
   onMusicUpload,
   onMusicTrackUpdate,
@@ -74,6 +76,13 @@ export const Timeline: React.FC<TimelineProps> = ({
     originalEnd: number;
   } | null>(null);
   const [draggingMusic, setDraggingMusic] = useState<{
+    id: string;
+    type: "move" | "resize-start" | "resize-end";
+    startX: number;
+    originalStart: number;
+    originalEnd: number;
+  } | null>(null);
+  const [draggingScene, setDraggingScene] = useState<{
     id: string;
     type: "move" | "resize-start" | "resize-end";
     startX: number;
@@ -280,6 +289,80 @@ export const Timeline: React.FC<TimelineProps> = ({
     };
   }, [draggingMusic, durationInFrames, fps, onMusicTrackUpdate]);
 
+  // Scene drag handling
+  const handleSceneMouseDown = useCallback(
+    (
+      e: React.MouseEvent,
+      scene: SceneDefinition,
+      type: "move" | "resize-start" | "resize-end"
+    ) => {
+      e.stopPropagation();
+      setDraggingScene({
+        id: scene.id,
+        type,
+        startX: e.clientX,
+        originalStart: scene.startFrame,
+        originalEnd: scene.endFrame,
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!draggingScene || !onSceneUpdate) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = timelineRef.current?.getBoundingClientRect();
+      if (!rect || !draggingScene) return;
+
+      const deltaX = e.clientX - draggingScene.startX;
+      const deltaFrames = Math.round((deltaX / rect.width) * durationInFrames);
+
+      let newStart = draggingScene.originalStart;
+      let newEnd = draggingScene.originalEnd;
+
+      if (draggingScene.type === "move") {
+        const sceneDuration =
+          draggingScene.originalEnd - draggingScene.originalStart;
+        newStart = Math.max(0, draggingScene.originalStart + deltaFrames);
+        newEnd = newStart + sceneDuration;
+
+        // Prevent going past end
+        if (newEnd > durationInFrames) {
+          newEnd = durationInFrames;
+          newStart = newEnd - sceneDuration;
+        }
+      } else if (draggingScene.type === "resize-start") {
+        newStart = Math.max(
+          0,
+          Math.min(
+            draggingScene.originalEnd - fps, // Minimum 1 second
+            draggingScene.originalStart + deltaFrames
+          )
+        );
+      } else if (draggingScene.type === "resize-end") {
+        newEnd = Math.max(
+          draggingScene.originalStart + fps, // Minimum 1 second
+          Math.min(durationInFrames, draggingScene.originalEnd + deltaFrames)
+        );
+      }
+
+      onSceneUpdate(draggingScene.id, newStart, newEnd);
+    };
+
+    const handleMouseUp = () => {
+      setDraggingScene(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [draggingScene, durationInFrames, fps, onSceneUpdate]);
+
   return (
     <div className="rounded-2xl relative border border-slate-800 bg-slate-900/70 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -335,35 +418,67 @@ export const Timeline: React.FC<TimelineProps> = ({
               const isActive =
                 currentFrame >= scene.startFrame &&
                 currentFrame < scene.endFrame;
+              const isDragging = draggingScene?.id === scene.id;
 
               return (
                 <div
                   key={scene.id}
-                  className={`absolute top-0.5 bottom-0.5 rounded-md transition-all cursor-pointer ${
-                    isActive
+                  className={`absolute top-0.5 bottom-0.5 rounded-md transition-all ${
+                    isDragging
+                      ? "ring-2 ring-white/70 brightness-125"
+                      : isActive
                       ? "ring-1 ring-white/50 brightness-110"
                       : "hover:brightness-105"
                   }`}
                   style={{
                     left: `${left}%`,
                     width: `${width}%`,
-                    minWidth: "30px",
+                    minWidth: "50px",
                     background: scene.color,
                   }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSeek(scene.startFrame);
-                  }}
-                  title={`${scene.name} (${scene.startFrame}-${scene.endFrame})`}
+                  title={`${scene.name} (${scene.startFrame}-${scene.endFrame}) - Drag to move, edges to resize`}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center overflow-hidden px-1">
+                  {/* Resize Handle - Start */}
+                  {onSceneUpdate && (
+                    <div
+                      className="absolute left-0 top-0 h-full w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 transition rounded-l-md z-10"
+                      onMouseDown={(e) =>
+                        handleSceneMouseDown(e, scene, "resize-start")
+                      }
+                    />
+                  )}
+
+                  {/* Move Handle - Middle (clickable to seek) */}
+                  <div
+                    className={`absolute inset-x-2 inset-y-0 flex items-center justify-center overflow-hidden px-1 ${
+                      onSceneUpdate ? "cursor-grab" : "cursor-pointer"
+                    }`}
+                    onMouseDown={(e) => {
+                      if (onSceneUpdate) {
+                        handleSceneMouseDown(e, scene, "move");
+                      }
+                    }}
+                    onClick={(e) => {
+                      if (!draggingScene) {
+                        e.stopPropagation();
+                        onSeek(scene.startFrame);
+                      }
+                    }}
+                  >
                     <span className="text-[9px] font-medium text-white/90 truncate drop-shadow-sm">
                       {scene.name}
                     </span>
                   </div>
-                  {/* Scene boundary indicators */}
-                  <div className="absolute left-0 top-0 h-full w-0.5 bg-white/20" />
-                  <div className="absolute right-0 top-0 h-full w-0.5 bg-white/20" />
+
+                  {/* Resize Handle - End */}
+                  {onSceneUpdate && (
+                    <div
+                      className="absolute right-0 top-0 h-full w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 transition rounded-r-md z-10"
+                      onMouseDown={(e) =>
+                        handleSceneMouseDown(e, scene, "resize-end")
+                      }
+                    />
+                  )}
                 </div>
               );
             })}

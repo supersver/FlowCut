@@ -48,6 +48,14 @@ interface CaptionSettings {
   position: "top" | "center" | "bottom";
 }
 
+interface SceneTiming {
+  id: string;
+  name: string;
+  startFrame: number;
+  endFrame: number;
+  color: string;
+}
+
 interface Template4Props {
   recipientName: string;
   phoneName: string;
@@ -59,6 +67,7 @@ interface Template4Props {
   captions?: CaptionItem[];
   captionSettings?: CaptionSettings;
   usePhoneTease?: boolean;
+  sceneTimings?: SceneTiming[];
 }
 
 export const Template4: React.FC<Template4Props> = ({
@@ -72,6 +81,7 @@ export const Template4: React.FC<Template4Props> = ({
   captions: captionsProp,
   captionSettings: captionSettingsProp,
   usePhoneTease = true,
+  sceneTimings,
 }) => {
   const frame = useCurrentFrame();
 
@@ -164,6 +174,45 @@ export const Template4: React.FC<Template4Props> = ({
       );
     }
     return 1;
+  };
+
+  // Default scene timings (used when sceneTimings prop is not provided)
+  const defaultSceneTimings = {
+    intro: { startFrame: 0, endFrame: 90 },
+    context: { startFrame: 90, endFrame: 210 },
+    promise: { startFrame: 210, endFrame: 420 },
+    reveal: { startFrame: 420, endFrame: 540 },
+    cta: { startFrame: 540, endFrame: 650 },
+    outro: { startFrame: 650, endFrame: 750 },
+  };
+
+  // Helper to get scene timing - uses prop values if available, otherwise defaults
+  const getSceneTiming = (sceneName: string) => {
+    const sceneIds: Record<string, string> = {
+      intro: "t4-s1",
+      context: "t4-s2",
+      promise: "t4-s3",
+      reveal: "t4-s4",
+      cta: "t4-s5",
+      outro: "t4-s6",
+    };
+
+    const sceneId = sceneIds[sceneName];
+    const sceneTiming = sceneTimings?.find((s) => s.id === sceneId);
+
+    if (sceneTiming) {
+      return {
+        from: sceneTiming.startFrame,
+        duration: sceneTiming.endFrame - sceneTiming.startFrame,
+      };
+    }
+
+    const defaults =
+      defaultSceneTimings[sceneName as keyof typeof defaultSceneTimings];
+    return {
+      from: defaults?.startFrame || 0,
+      duration: (defaults?.endFrame || 90) - (defaults?.startFrame || 0),
+    };
   };
 
   return (
@@ -306,24 +355,40 @@ export const Template4: React.FC<Template4Props> = ({
       {/* SCENES */}
       {/* ============================================ */}
 
-      {/* Scene 1: Personal Recognition (0-90 frames) */}
-      <Sequence from={0} durationInFrames={90} style={{ zIndex: 10 }}>
+      {/* Scene 1: Personal Recognition */}
+      <Sequence
+        from={getSceneTiming("intro").from}
+        durationInFrames={getSceneTiming("intro").duration}
+        style={{ zIndex: 10 }}
+      >
         {/* Helper handles TEXT ONLY now. Video handled globally above. */}
         <IntroPresenter recipientName={recipientName} />
       </Sequence>
 
-      {/* Scene 2: Context Layer (90-210 frames) */}
-      <Sequence from={90} durationInFrames={120} style={{ zIndex: 10 }}>
+      {/* Scene 2: Context Layer */}
+      <Sequence
+        from={getSceneTiming("context").from}
+        durationInFrames={getSceneTiming("context").duration}
+        style={{ zIndex: 10 }}
+      >
         <ContextLayer />
       </Sequence>
 
-      {/* Scene 3: Single Core Promise (210-420 frames) */}
-      <Sequence from={210} durationInFrames={210} style={{ zIndex: 10 }}>
+      {/* Scene 3: Single Core Promise */}
+      <Sequence
+        from={getSceneTiming("promise").from}
+        durationInFrames={getSceneTiming("promise").duration}
+        style={{ zIndex: 10 }}
+      >
         <PromiseText />
       </Sequence>
 
-      {/* Scene 4: Soft Reveal + Tease (420-540 frames) */}
-      <Sequence from={420} durationInFrames={120} style={{ zIndex: 10 }}>
+      {/* Scene 4: Soft Reveal + Tease */}
+      <Sequence
+        from={getSceneTiming("reveal").from}
+        durationInFrames={getSceneTiming("reveal").duration}
+        style={{ zIndex: 10 }}
+      >
         {/* Note: Presenter is hidden by global opacity logic during this time */}
 
         {usePhoneTease ? (
@@ -408,8 +473,12 @@ export const Template4: React.FC<Template4Props> = ({
         )} */}
       </Sequence>
 
-      {/* Scene 5: Reply-Based CTA (540-660 frames) */}
-      <Sequence from={540} durationInFrames={110} style={{ zIndex: 10 }}>
+      {/* Scene 5: Reply-Based CTA */}
+      <Sequence
+        from={getSceneTiming("cta").from}
+        durationInFrames={getSceneTiming("cta").duration}
+        style={{ zIndex: 10 }}
+      >
         <WhatsAppCTA replyText="YES" />
       </Sequence>
 

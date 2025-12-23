@@ -8,6 +8,8 @@ import { Template3 } from "@/remotion/templates/Template3";
 import { Template4 } from "@/remotion/templates/Template4";
 import { Template5 } from "@/remotion/templates/Template5";
 import { Timeline } from "./components/Timeline";
+import { SceneElementSelectorModal } from "./components/SceneElementSelectorModal";
+import { SceneElement } from "./constants/SCENE_ELEMENTS";
 import {
   parseSrt,
   CaptionItem,
@@ -72,8 +74,8 @@ interface SceneDefinition {
   color: string;
 }
 
-// Scene definitions for each template
-const TEMPLATE_SCENES: Record<string, SceneDefinition[]> = {
+// Default scene definitions for each template (used as initial values)
+const DEFAULT_SCENES: Record<string, SceneDefinition[]> = {
   template4: [
     {
       id: "t4-s1",
@@ -243,12 +245,15 @@ export default function Home() {
   const [t5CtaText, setT5CtaText] = useState("Choose your EMI plan");
   // Music tracks (supports multiple)
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
+  // Scene timings (editable)
+  const [scenes, setScenes] = useState<SceneDefinition[]>([]);
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
   const [fps, setFps] = useState(FPS_OPTIONS[1]); // Default to 30 fps
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [captionEditorOpen, setCaptionEditorOpen] = useState(false);
+  const [elementSelectorOpen, setElementSelectorOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -257,6 +262,11 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Initialize scenes when template changes
+  useEffect(() => {
+    setScenes(DEFAULT_SCENES[selectedTemplate.id] || []);
+  }, [selectedTemplate.id]);
 
   // Sync current frame from player
   useEffect(() => {
@@ -403,6 +413,60 @@ export default function Home() {
       prev.map((clip) => (clip.id === id ? { ...clip, layer } : clip))
     );
   };
+
+  // Scene update handlers
+  const updateScene = useCallback(
+    (id: string, startFrame: number, endFrame: number) => {
+      setScenes((prev) =>
+        prev.map((scene) =>
+          scene.id === id ? { ...scene, startFrame, endFrame } : scene
+        )
+      );
+    },
+    []
+  );
+
+  const updateSceneProperties = useCallback(
+    (id: string, updates: Partial<SceneDefinition>) => {
+      setScenes((prev) =>
+        prev.map((scene) =>
+          scene.id === id ? { ...scene, ...updates } : scene
+        )
+      );
+    },
+    []
+  );
+
+  const addScene = useCallback((scene: SceneDefinition) => {
+    setScenes((prev) => [...prev, scene]);
+  }, []);
+
+  const removeScene = useCallback((id: string) => {
+    setScenes((prev) => prev.filter((scene) => scene.id !== id));
+  }, []);
+
+  // Handler for selecting a scene element from the modal
+  const handleElementSelect = useCallback(
+    (element: SceneElement) => {
+      const lastScene = scenes[scenes.length - 1];
+      const newStartFrame = lastScene ? lastScene.endFrame : 0;
+      const newId = `scene-${Date.now()}`;
+
+      addScene({
+        id: newId,
+        name: element.name,
+        startFrame: newStartFrame,
+        endFrame: Math.min(
+          newStartFrame + element.defaultDuration,
+          selectedTemplate.duration
+        ),
+        color: element.color,
+      });
+
+      setElementSelectorOpen(false);
+    },
+    [scenes, addScene, selectedTemplate.duration]
+  );
 
   // SRT file upload handler
   const handleSrtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -829,6 +893,7 @@ export default function Home() {
                         captions,
                         captionSettings,
                         usePhoneTease,
+                        sceneTimings: scenes,
                       }
                     : selectedTemplate.id === "template5"
                     ? {
@@ -846,6 +911,7 @@ export default function Home() {
                         availableLimit: t5AvailableLimit,
                         brandText: t5BrandText,
                         ctaText: t5CtaText,
+                        sceneTimings: scenes,
                       }
                     : {
                         productImages,
@@ -1360,6 +1426,122 @@ export default function Home() {
                 </div>
               </>
             )}
+
+            {/* Scenes Section - Common to all templates */}
+            {scenes.length > 0 && (
+              <div className="border-t border-slate-800 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[11px] font-medium text-slate-300">
+                    🎬 Scenes ({scenes.length})
+                  </h4>
+                  <button
+                    onClick={() => setElementSelectorOpen(true)}
+                    className="text-[9px] text-blue-400 hover:text-blue-300"
+                  >
+                    + Add Scene
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {scenes.map((scene, index) => (
+                    <div
+                      key={scene.id}
+                      className="bg-slate-800/50 border border-slate-700 rounded-lg p-2"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ background: scene.color }}
+                        />
+                        <input
+                          type="text"
+                          value={scene.name}
+                          onChange={(e) =>
+                            updateSceneProperties(scene.id, {
+                              name: e.target.value,
+                            })
+                          }
+                          className="flex-1 bg-transparent border-none text-[10px] text-slate-200 font-medium outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
+                        />
+                        <button
+                          onClick={() => handleSeek(scene.startFrame)}
+                          className="text-[8px] text-slate-400 hover:text-slate-200"
+                          title="Jump to scene"
+                        >
+                          ▶
+                        </button>
+                        <button
+                          onClick={() => removeScene(scene.id)}
+                          className="text-[8px] text-red-400 hover:text-red-300"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="block text-[8px] text-slate-500 mb-0.5">
+                            Start
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={scene.endFrame - fps.id}
+                            value={scene.startFrame}
+                            onChange={(e) =>
+                              updateScene(
+                                scene.id,
+                                parseInt(e.target.value) || 0,
+                                scene.endFrame
+                              )
+                            }
+                            className="w-full rounded border border-slate-600 bg-slate-700 px-1.5 py-0.5 text-[9px] text-slate-100"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-[8px] text-slate-500 mb-0.5">
+                            End
+                          </label>
+                          <input
+                            type="number"
+                            min={scene.startFrame + fps.id}
+                            max={selectedTemplate.duration}
+                            value={scene.endFrame}
+                            onChange={(e) =>
+                              updateScene(
+                                scene.id,
+                                scene.startFrame,
+                                parseInt(e.target.value) ||
+                                  scene.startFrame + fps.id
+                              )
+                            }
+                            className="w-full rounded border border-slate-600 bg-slate-700 px-1.5 py-0.5 text-[9px] text-slate-100"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-[8px] text-slate-500 mb-0.5">
+                            Duration
+                          </label>
+                          <span className="block text-[9px] text-slate-300 px-1.5 py-0.5">
+                            {(
+                              (scene.endFrame - scene.startFrame) /
+                              fps.id
+                            ).toFixed(1)}
+                            s
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() =>
+                    setScenes(DEFAULT_SCENES[selectedTemplate.id] || [])
+                  }
+                  className="mt-2 text-[9px] text-slate-500 hover:text-slate-400"
+                >
+                  ↺ Reset to defaults
+                </button>
+              </div>
+            )}
           </div>
         </aside>
       </div>
@@ -1375,7 +1557,8 @@ export default function Home() {
           onClipUpdate={updateClipTiming}
           onClipLayerUpdate={updateClipLayer}
           onClipRemove={removeClip}
-          scenes={TEMPLATE_SCENES[selectedTemplate.id] || []}
+          scenes={scenes}
+          onSceneUpdate={updateScene}
           musicTracks={musicTracks}
           onMusicUpload={handleMusicUpload}
           onMusicTrackUpdate={updateMusicTrack}
@@ -1524,6 +1707,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Scene Element Selector Modal */}
+      <SceneElementSelectorModal
+        isOpen={elementSelectorOpen}
+        onClose={() => setElementSelectorOpen(false)}
+        onSelect={handleElementSelect}
+      />
     </div>
   );
 }
