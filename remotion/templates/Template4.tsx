@@ -6,6 +6,7 @@ import {
   Sequence,
   OffthreadVideo,
   Audio,
+  Img,
   staticFile,
 } from "remotion";
 import { IntroPresenter } from "./Template4/Components/IntroPresenter";
@@ -21,6 +22,7 @@ interface CustomClip {
   startFrame: number;
   endFrame: number;
   type: "image" | "video";
+  layer: number; // 0 = background, 1+ = overlay
 }
 
 interface MusicTrack {
@@ -101,68 +103,8 @@ export const Template4: React.FC<Template4Props> = ({
   // ============================================
   // CAPTIONS LOGIC
   // ============================================
-  // Default captions (fallback if none provided via props)
-  const defaultCaptions = [
-    {
-      id: "1",
-      startFrame: 3,
-      endFrame: 75,
-      text: "Hey Mayank, quick heads up before we go",
-    },
-    {
-      id: "2",
-      startFrame: 75,
-      endFrame: 130,
-      text: "live. You're probably on your phone",
-    },
-    {
-      id: "3",
-      startFrame: 130,
-      endFrame: 202,
-      text: "most of the day. Work calls, messages, a",
-    },
-    {
-      id: "4",
-      startFrame: 202,
-      endFrame: 283,
-      text: "bunch of apps open. Your day is heavy. So",
-    },
-    {
-      id: "5",
-      startFrame: 283,
-      endFrame: 355,
-      text: "we're working on something to fix that. A",
-    },
-    {
-      id: "6",
-      startFrame: 355,
-      endFrame: 410,
-      text: "phone that just keeps going without",
-    },
-    {
-      id: "7",
-      startFrame: 410,
-      endFrame: 491,
-      text: "you having to slow down. A new Vivo X300",
-    },
-    {
-      id: "8",
-      startFrame: 491,
-      endFrame: 563,
-      text: "doesn't just keep up, it leads. Want to",
-    },
-    {
-      id: "9",
-      startFrame: 563,
-      endFrame: 636,
-      text: "see it first? Just respond with yes to",
-    },
-    { id: "10", startFrame: 636, endFrame: 654, text: "this message." },
-  ];
-
-  // Use props captions if provided, otherwise use defaults
-  const captions =
-    captionsProp && captionsProp.length > 0 ? captionsProp : defaultCaptions;
+  // Captions are only shown when an SRT file is uploaded (no hardcoded defaults)
+  const captions = captionsProp && captionsProp.length > 0 ? captionsProp : [];
 
   // Caption settings with defaults
   const captionSettings: CaptionSettings = {
@@ -476,6 +418,92 @@ export const Template4: React.FC<Template4Props> = ({
         <Outro />
       </Sequence> */}
 
+      {/* ============================================ */}
+      {/* CUSTOM CLIPS - Integrated into video composition */}
+      {/* ============================================ */}
+
+      {/* Background clips (layer 0) - render below scenes */}
+      {customClips
+        .filter((clip) => clip.layer === 0)
+        .map((clip) => (
+          <Sequence
+            key={clip.id}
+            from={clip.startFrame}
+            durationInFrames={clip.endFrame - clip.startFrame}
+            style={{ zIndex: 5 }}
+          >
+            <AbsoluteFill
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#000",
+              }}
+            >
+              {clip.type === "video" ? (
+                <OffthreadVideo
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <Img
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              )}
+            </AbsoluteFill>
+          </Sequence>
+        ))}
+
+      {/* Overlay clips (layer 1+) - render above scenes */}
+      {customClips
+        .filter((clip) => clip.layer >= 1)
+        .map((clip) => (
+          <Sequence
+            key={clip.id}
+            from={clip.startFrame}
+            durationInFrames={clip.endFrame - clip.startFrame}
+            style={{ zIndex: 50 + clip.layer }}
+          >
+            <AbsoluteFill
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {clip.type === "video" ? (
+                <OffthreadVideo
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : (
+                <Img
+                  src={clip.url}
+                  style={{
+                    maxWidth: "80%",
+                    maxHeight: "80%",
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                  }}
+                />
+              )}
+            </AbsoluteFill>
+          </Sequence>
+        ))}
       {/* ============================================ */}
       {/* CAPTIONS OVERLAY */}
       {/* ============================================ */}

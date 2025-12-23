@@ -6,6 +6,7 @@ import {
   Sequence,
   OffthreadVideo,
   Audio,
+  Img,
 } from "remotion";
 import { GreetingBanner } from "./Template5/Components/GreetingBanner";
 import { CreditCard } from "./Template5/Components/CreditCard";
@@ -20,6 +21,15 @@ interface MusicTrack {
   startFrame: number;
   endFrame: number;
   volume: number;
+}
+
+interface CustomClip {
+  id: string;
+  url: string;
+  startFrame: number;
+  endFrame: number;
+  type: "image" | "video";
+  layer: number;
 }
 
 interface CaptionItem {
@@ -59,11 +69,11 @@ interface EMITransaction {
 }
 
 interface Template5Props {
-  // Reused from Template 4
   recipientName: string;
   presenterVideoUrl?: string;
   logoUrl?: string;
   musicTracks?: MusicTrack[];
+  customClips?: CustomClip[];
   captions?: CaptionItem[];
   captionSettings?: CaptionSettings;
 
@@ -107,6 +117,7 @@ export const Template5: React.FC<Template5Props> = ({
   presenterVideoUrl,
   logoUrl,
   musicTracks = [],
+  customClips = [],
   captions: captionsProp,
   captionSettings: captionSettingsProp,
   userName = "Jayant Bhakhri",
@@ -147,98 +158,8 @@ export const Template5: React.FC<Template5Props> = ({
   // ============================================
   // CAPTIONS LOGIC (same UI as Template 4)
   // ============================================
-  // Default captions from template-5-CC.srt (at 30fps)
-  const defaultCaptions: CaptionItem[] = [
-    {
-      id: "1",
-      startFrame: 4,
-      endFrame: 58,
-      text: "Hello Jayant, you're nearing",
-    },
-    {
-      id: "2",
-      startFrame: 58,
-      endFrame: 126,
-      text: "50% of your credit usage",
-    },
-    {
-      id: "3",
-      startFrame: 126,
-      endFrame: 193,
-      text: "on your Platinum credit card,",
-    },
-    {
-      id: "4",
-      startFrame: 193,
-      endFrame: 261,
-      text: "ending with 6959. Here is",
-    },
-    {
-      id: "5",
-      startFrame: 261,
-      endFrame: 328,
-      text: "a smart spend analysis. Dining",
-    },
-    {
-      id: "6",
-      startFrame: 328,
-      endFrame: 396,
-      text: "remained your top spend this",
-    },
-    {
-      id: "7",
-      startFrame: 396,
-      endFrame: 477,
-      text: "month, while travel just missed the",
-    },
-    {
-      id: "8",
-      startFrame: 477,
-      endFrame: 558,
-      text: "crumb. Your top merchants were Vivanta,",
-    },
-    {
-      id: "9",
-      startFrame: 558,
-      endFrame: 599,
-      text: "MakeMyTrip, and Shoppers",
-    },
-    { id: "10", startFrame: 599, endFrame: 669, text: "Stop. With" },
-    {
-      id: "11",
-      startFrame: 669,
-      endFrame: 741,
-      text: "Flexy EMI, now you can get your credit",
-    },
-    {
-      id: "12",
-      startFrame: 741,
-      endFrame: 785,
-      text: "usage under control by converting",
-    },
-    {
-      id: "13",
-      startFrame: 785,
-      endFrame: 866,
-      text: "these spends to easy EMI. That can be good,",
-    },
-    {
-      id: "14",
-      startFrame: 860,
-      endFrame: 950,
-      text: "bad. And knowing the difference is financial",
-    },
-    {
-      id: "15",
-      startFrame: 950,
-      endFrame: 1022,
-      text: "wisdom. Tap the button below and choose your",
-    },
-    { id: "16", startFrame: 1022, endFrame: 1040, text: "EMI plan." },
-  ];
-
-  const captions =
-    captionsProp && captionsProp.length > 0 ? captionsProp : defaultCaptions;
+  // Captions are only shown when an SRT file is uploaded (no hardcoded defaults)
+  const captions = captionsProp && captionsProp.length > 0 ? captionsProp : [];
 
   const captionSettings: CaptionSettings = {
     fontFamily: captionSettingsProp?.fontFamily || "Inter",
@@ -441,6 +362,93 @@ export const Template5: React.FC<Template5Props> = ({
       <Sequence from={930} durationInFrames={120} style={{ zIndex: 60 }}>
         <ClosingCTA logoUrl={logoUrl} brandText={brandText} ctaText={ctaText} />
       </Sequence>
+
+      {/* ============================================ */}
+      {/* CUSTOM CLIPS - Integrated into video composition */}
+      {/* ============================================ */}
+
+      {/* Background clips (layer 0) - render below scenes */}
+      {customClips
+        .filter((clip) => clip.layer === 0)
+        .map((clip) => (
+          <Sequence
+            key={clip.id}
+            from={clip.startFrame}
+            durationInFrames={clip.endFrame - clip.startFrame}
+            style={{ zIndex: 5 }}
+          >
+            <AbsoluteFill
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#000",
+              }}
+            >
+              {clip.type === "video" ? (
+                <OffthreadVideo
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <Img
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              )}
+            </AbsoluteFill>
+          </Sequence>
+        ))}
+
+      {/* Overlay clips (layer 1+) - render above scenes */}
+      {customClips
+        .filter((clip) => clip.layer >= 1)
+        .map((clip) => (
+          <Sequence
+            key={clip.id}
+            from={clip.startFrame}
+            durationInFrames={clip.endFrame - clip.startFrame}
+            style={{ zIndex: 70 + clip.layer }}
+          >
+            <AbsoluteFill
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {clip.type === "video" ? (
+                <OffthreadVideo
+                  src={clip.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : (
+                <Img
+                  src={clip.url}
+                  style={{
+                    maxWidth: "80%",
+                    maxHeight: "80%",
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                  }}
+                />
+              )}
+            </AbsoluteFill>
+          </Sequence>
+        ))}
 
       {/* ============================================ */}
       {/* CAPTIONS OVERLAY */}

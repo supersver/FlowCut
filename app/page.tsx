@@ -34,6 +34,7 @@ interface CustomClip {
   startFrame: number;
   endFrame: number;
   type: "image" | "video";
+  layer: number; // 0 = background (replaces template), 1+ = overlay on top
 }
 
 interface MusicTrack {
@@ -62,6 +63,114 @@ interface TemplateConfig {
   component: React.FC<any>;
 }
 
+// Scene definition for timeline visualization
+interface SceneDefinition {
+  id: string;
+  name: string;
+  startFrame: number;
+  endFrame: number;
+  color: string;
+}
+
+// Scene definitions for each template
+const TEMPLATE_SCENES: Record<string, SceneDefinition[]> = {
+  template4: [
+    {
+      id: "t4-s1",
+      name: "Intro",
+      startFrame: 0,
+      endFrame: 90,
+      color: "linear-gradient(90deg, #3b82f6, #6366f1)",
+    },
+    {
+      id: "t4-s2",
+      name: "Context",
+      startFrame: 90,
+      endFrame: 210,
+      color: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+    },
+    {
+      id: "t4-s3",
+      name: "Promise",
+      startFrame: 210,
+      endFrame: 420,
+      color: "linear-gradient(90deg, #8b5cf6, #a855f7)",
+    },
+    {
+      id: "t4-s4",
+      name: "Phone Reveal",
+      startFrame: 420,
+      endFrame: 540,
+      color: "linear-gradient(90deg, #a855f7, #d946ef)",
+    },
+    {
+      id: "t4-s5",
+      name: "WhatsApp CTA",
+      startFrame: 540,
+      endFrame: 650,
+      color: "linear-gradient(90deg, #d946ef, #ec4899)",
+    },
+    {
+      id: "t4-s6",
+      name: "Outro",
+      startFrame: 650,
+      endFrame: 750,
+      color: "linear-gradient(90deg, #ec4899, #f43f5e)",
+    },
+  ],
+  template5: [
+    {
+      id: "t5-s1",
+      name: "Greeting",
+      startFrame: 0,
+      endFrame: 90,
+      color: "linear-gradient(90deg, #10b981, #14b8a6)",
+    },
+    {
+      id: "t5-s2",
+      name: "Credit Card",
+      startFrame: 90,
+      endFrame: 240,
+      color: "linear-gradient(90deg, #14b8a6, #06b6d4)",
+    },
+    {
+      id: "t5-s3",
+      name: "Spending",
+      startFrame: 240,
+      endFrame: 480,
+      color: "linear-gradient(90deg, #06b6d4, #0ea5e9)",
+    },
+    {
+      id: "t5-s4",
+      name: "Merchants",
+      startFrame: 480,
+      endFrame: 630,
+      color: "linear-gradient(90deg, #0ea5e9, #3b82f6)",
+    },
+    {
+      id: "t5-s5",
+      name: "EMI Card",
+      startFrame: 630,
+      endFrame: 780,
+      color: "linear-gradient(90deg, #3b82f6, #6366f1)",
+    },
+    {
+      id: "t5-s6",
+      name: "Presenter",
+      startFrame: 780,
+      endFrame: 930,
+      color: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+    },
+    {
+      id: "t5-s7",
+      name: "Closing CTA",
+      startFrame: 930,
+      endFrame: 1050,
+      color: "linear-gradient(90deg, #8b5cf6, #a855f7)",
+    },
+  ],
+};
+
 const templates: TemplateConfig[] = [
   // {
   //   id: "template1",
@@ -77,24 +186,23 @@ const templates: TemplateConfig[] = [
   //   duration: 600,
   //   component: Template2,
   // },
-  {
-    id: "template3",
-    name: "Split Screen",
-    description: "Hero product at the top with a bold review section.",
-    duration: 750,
-    component: Template3,
-  },
+  // {
+  //   id: "template3",
+  //   name: "Split Screen",
+  //   description: "Hero product at the top with a bold review section.",
+  //   duration: 750,
+  //   component: Template3,
+  // },
   {
     id: "template4",
     name: "WhatsApp Pre-Launch",
-    description:
-      "Personalized presenter video with phone tease & WhatsApp CTA.",
+    description: "Personalized video with phone tease & WhatsApp CTA.",
     duration: 750,
     component: Template4,
   },
   {
     id: "template5",
-    name: "HDFC Financial Services",
+    name: "Financial Services",
     description:
       "Credit card with spending analytics, merchant breakdown & EMI options.",
     duration: 1050,
@@ -140,6 +248,7 @@ export default function Home() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [captionEditorOpen, setCaptionEditorOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -266,6 +375,7 @@ export default function Home() {
           startFrame: 210,
           endFrame: 330,
           type,
+          layer: 1, // Default to overlay layer
         };
         setCustomClips((prev) => [...prev, newClip]);
       }
@@ -286,6 +396,12 @@ export default function Home() {
 
   const removeClip = (id: string) => {
     setCustomClips((prev) => prev.filter((clip) => clip.id !== id));
+  };
+
+  const updateClipLayer = (id: string, layer: number) => {
+    setCustomClips((prev) =>
+      prev.map((clip) => (clip.id === id ? { ...clip, layer } : clip))
+    );
   };
 
   // SRT file upload handler
@@ -364,6 +480,7 @@ export default function Home() {
                   presenterVideoUrl,
                   logoUrl,
                   musicTracks,
+                  customClips,
                   captions,
                   captionSettings,
                   userName: t5UserName,
@@ -719,6 +836,7 @@ export default function Home() {
                         presenterVideoUrl,
                         logoUrl,
                         musicTracks,
+                        customClips,
                         captions,
                         captionSettings,
                         userName: t5UserName,
@@ -930,7 +1048,7 @@ export default function Home() {
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <label className="block text-[10px] text-slate-500 mb-0.5">
-                            Color
+                            Text Color
                           </label>
                           <input
                             type="color"
@@ -939,6 +1057,26 @@ export default function Home() {
                               setCaptionSettings((s) => ({
                                 ...s,
                                 color: e.target.value,
+                              }))
+                            }
+                            className="w-full h-6 rounded border border-slate-700 bg-slate-800 cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-[10px] text-slate-500 mb-0.5">
+                            Background
+                          </label>
+                          <input
+                            type="color"
+                            value={
+                              captionSettings.backgroundColor.startsWith("rgba")
+                                ? "#000000"
+                                : captionSettings.backgroundColor
+                            }
+                            onChange={(e) =>
+                              setCaptionSettings((s) => ({
+                                ...s,
+                                backgroundColor: e.target.value + "cc", // Add some transparency
                               }))
                             }
                             className="w-full h-6 rounded border border-slate-700 bg-slate-800 cursor-pointer"
@@ -963,12 +1101,20 @@ export default function Home() {
                           />
                         </div>
                       </div>
-                      <button
-                        onClick={() => setCaptions([])}
-                        className="text-[10px] text-red-400"
-                      >
-                        Clear captions
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCaptionEditorOpen(true)}
+                          className="flex-1 text-[10px] text-blue-400 hover:text-blue-300 bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                        >
+                          ✏️ Edit Captions
+                        </button>
+                        <button
+                          onClick={() => setCaptions([])}
+                          className="text-[10px] text-red-400 hover:text-red-300"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1138,44 +1284,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Music tracks */}
-                <div className="border-t border-slate-700 pt-3">
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Background Music
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleMusicUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      + Add music track
-                    </div>
-                  </label>
-                  {musicTracks.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {musicTracks.map((track, i) => (
-                        <div
-                          key={track.id}
-                          className="flex items-center justify-between rounded bg-slate-800/50 px-2 py-1.5"
-                        >
-                          <span className="text-[10px] text-slate-300">
-                            Track {i + 1}
-                          </span>
-                          <button
-                            onClick={() => removeMusicTrack(track.id)}
-                            className="text-[10px] text-red-400"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 {/* Captions */}
                 <div className="border-t border-slate-700 pt-3">
                   <label className="block text-[11px] text-slate-400 mb-1">
@@ -1195,12 +1303,20 @@ export default function Home() {
                     </div>
                   </label>
                   {captions.length > 0 && (
-                    <button
-                      onClick={() => setCaptions([])}
-                      className="mt-1 text-[10px] text-red-400"
-                    >
-                      Clear captions
-                    </button>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => setCaptionEditorOpen(true)}
+                        className="flex-1 text-[10px] text-blue-400 hover:text-blue-300 bg-slate-800 border border-slate-700 rounded px-2 py-1"
+                      >
+                        ✏️ Edit Captions
+                      </button>
+                      <button
+                        onClick={() => setCaptions([])}
+                        className="text-[10px] text-red-400 hover:text-red-300"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   )}
                 </div>
               </>
@@ -1257,12 +1373,157 @@ export default function Home() {
           customClips={customClips}
           onSeek={handleSeek}
           onClipUpdate={updateClipTiming}
+          onClipLayerUpdate={updateClipLayer}
+          onClipRemove={removeClip}
+          scenes={TEMPLATE_SCENES[selectedTemplate.id] || []}
           musicTracks={musicTracks}
           onMusicUpload={handleMusicUpload}
           onMusicTrackUpdate={updateMusicTrack}
           onMusicTrackRemove={removeMusicTrack}
         />
       </div>
+
+      {/* Caption Editor Modal */}
+      {captionEditorOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <h2 className="text-lg font-semibold text-slate-100">
+                ✏️ Edit Captions
+              </h2>
+              <button
+                onClick={() => setCaptionEditorOpen(false)}
+                className="text-slate-400 hover:text-slate-200 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {captions.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p className="mb-4">
+                    No captions yet. Add your first caption below.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {captions.map((caption, index) => (
+                    <div
+                      key={caption.id}
+                      className="bg-slate-800/50 border border-slate-700 rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          #{index + 1}
+                        </span>
+                        <div className="flex-1 flex items-center gap-2">
+                          <label className="text-[10px] text-slate-400">
+                            Start:
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={caption.startFrame}
+                            onChange={(e) => {
+                              const newCaptions = [...captions];
+                              newCaptions[index] = {
+                                ...newCaptions[index],
+                                startFrame: parseInt(e.target.value) || 0,
+                              };
+                              setCaptions(newCaptions);
+                            }}
+                            className="w-20 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[11px] text-slate-100"
+                          />
+                          <span className="text-[10px] text-slate-500">
+                            ({(caption.startFrame / fps.id).toFixed(1)}s)
+                          </span>
+                        </div>
+                        <div className="flex-1 flex items-center gap-2">
+                          <label className="text-[10px] text-slate-400">
+                            End:
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={caption.endFrame}
+                            onChange={(e) => {
+                              const newCaptions = [...captions];
+                              newCaptions[index] = {
+                                ...newCaptions[index],
+                                endFrame: parseInt(e.target.value) || 0,
+                              };
+                              setCaptions(newCaptions);
+                            }}
+                            className="w-20 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[11px] text-slate-100"
+                          />
+                          <span className="text-[10px] text-slate-500">
+                            ({(caption.endFrame / fps.id).toFixed(1)}s)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCaptions(
+                              captions.filter((c) => c.id !== caption.id)
+                            );
+                          }}
+                          className="text-red-400 hover:text-red-300 text-xs px-2 py-1"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                      <textarea
+                        value={caption.text}
+                        onChange={(e) => {
+                          const newCaptions = [...captions];
+                          newCaptions[index] = {
+                            ...newCaptions[index],
+                            text: e.target.value,
+                          };
+                          setCaptions(newCaptions);
+                        }}
+                        className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1.5 text-xs text-slate-100 resize-none"
+                        rows={2}
+                        placeholder="Caption text..."
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between p-4 border-t border-slate-700">
+              <button
+                onClick={() => {
+                  const lastCaption = captions[captions.length - 1];
+                  const newStartFrame = lastCaption ? lastCaption.endFrame : 0;
+                  const newCaption: CaptionItem = {
+                    id: `caption-${Date.now()}`,
+                    startFrame: newStartFrame,
+                    endFrame: newStartFrame + fps.id * 2, // 2 seconds default
+                    text: "",
+                  };
+                  setCaptions([...captions, newCaption]);
+                }}
+                className="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
+              >
+                + Add Caption
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCaptionEditorOpen(false)}
+                  className="px-4 py-2 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
