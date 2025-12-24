@@ -1,96 +1,11 @@
 // This script runs outside of webpack bundling
 // It's invoked by the API route using child_process.spawn
+// Uses Remotion CLI for more stable rendering
 
-const { bundle } = require("@remotion/bundler");
-const {
-  renderMedia,
-  selectComposition,
-  ensureBrowser,
-} = require("@remotion/renderer");
+const { execSync, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
-
-// Cache configuration
-const CACHE_DIR = path.join(os.tmpdir(), "flowcut-bundle-cache");
-const CACHE_INFO_FILE = path.join(CACHE_DIR, "bundle-info.json");
-
-// Get a hash of source files to detect changes
-function getSourceHash() {
-  const remotionDir = path.join(process.cwd(), "remotion");
-  let hash = "";
-
-  function hashDir(dir) {
-    if (!fs.existsSync(dir)) return;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        hashDir(fullPath);
-      } else if (
-        entry.name.endsWith(".tsx") ||
-        entry.name.endsWith(".ts") ||
-        entry.name.endsWith(".css")
-      ) {
-        const stat = fs.statSync(fullPath);
-        hash += `${fullPath}:${stat.mtimeMs}|`;
-      }
-    }
-  }
-
-  hashDir(remotionDir);
-  return hash;
-}
-
-// Get cached bundle location if valid
-function getCachedBundle() {
-  try {
-    if (!fs.existsSync(CACHE_INFO_FILE)) {
-      return null;
-    }
-
-    const cacheInfo = JSON.parse(fs.readFileSync(CACHE_INFO_FILE, "utf-8"));
-    const currentHash = getSourceHash();
-
-    // Check if source files have changed
-    if (cacheInfo.sourceHash !== currentHash) {
-      console.error("[Render] Source files changed, cache invalidated");
-      return null;
-    }
-
-    // Check if bundle directory still exists
-    if (!fs.existsSync(cacheInfo.bundleLocation)) {
-      console.error("[Render] Cached bundle directory missing");
-      return null;
-    }
-
-    console.error("[Render] Using cached bundle!");
-    return cacheInfo.bundleLocation;
-  } catch (error) {
-    console.error("[Render] Error reading cache:", error.message);
-    return null;
-  }
-}
-
-// Save bundle location to cache
-function saveBundleCache(bundleLocation) {
-  try {
-    if (!fs.existsSync(CACHE_DIR)) {
-      fs.mkdirSync(CACHE_DIR, { recursive: true });
-    }
-
-    const cacheInfo = {
-      bundleLocation,
-      sourceHash: getSourceHash(),
-      createdAt: Date.now(),
-    };
-
-    fs.writeFileSync(CACHE_INFO_FILE, JSON.stringify(cacheInfo, null, 2));
-    console.error("[Render] Bundle cached for future renders");
-  } catch (error) {
-    console.error("[Render] Error saving cache:", error.message);
-  }
-}
 
 async function render() {
   // Read input from stdin
@@ -139,91 +54,111 @@ async function render() {
     );
     console.error(`[Render] Output path: ${outputPath}`);
 
-    // Ensure browser is available (will download if needed)
-    console.error("[Render] Ensuring browser is available...");
-    await ensureBrowser({
-      onBrowserDownload: (progress) => {
-        if (progress.downloaded === progress.totalSize) {
-          console.error("[Render] Browser download complete!");
-        } else {
-          console.error(
-            `[Render] Downloading browser: ${Math.round(
-              (progress.downloaded / progress.totalSize) * 100
-            )}%`
-          );
-        }
-      },
+    // Write props to a temp file for the CLI to read
+    const propsPath = path.join(
+      os.tmpdir(),
+      `flowcut-props-${Date.now()}.json`
+    );
+    fs.writeFileSync(propsPath, JSON.stringify(props || {}));
+    console.error(`[Render] Props written to: ${propsPath}`);
+
+    // Use Remotion CLI for rendering - more stable than programmatic API
+    const entryPoint = path.join(process.cwd(), "remotion", "Root.tsx");
+
+    // Build the CLI command
+    const args = [
+      "remotion",
+      "render",
+      entryPoint,
+      templateId,
+      outputPath,
+      "--props",
+      propsPath,
+      "--width",
+      String(width || 1080),
+      "--height",
+      String(height || 1920),
+      "--frames",
+      `0-${duration - 1}`,
+      "--fps",
+      String(fps),
+      "--codec",
+      "h264",
+      "--concurrency",
+      "2",
+      "--timeout",
+      "180000",
+      "--log",
+      "verbose",
+      "--overwrite",
+    ];
+
+    console.error(`[Render] Running: npx ${args.join(" ")}`);
+
+    // Run the CLI command
+    const renderProcess = spawn("npx", args, {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: true,
     });
-    console.error("[Render] Browser is ready!");
 
-    // Try to get cached bundle first
-    let bundleLocation = getCachedBundle();
+    let lastProgress = 0;
 
-    if (!bundleLocation) {
-      // Bundle the Remotion project
-      console.error(
-        "[Render] Bundling Remotion project (this may take a moment)..."
-      );
-      const entryPoint = path.join(process.cwd(), "remotion", "Root.tsx");
-      console.error(`[Render] Entry point: ${entryPoint}`);
+    renderProcess.stdout.on("data", (data) => {
+      const output = data.toString();
+      console.error(`[Render CLI] ${output}`);
 
-      bundleLocation = await bundle({
-        entryPoint,
-        webpackOverride: (config) => config,
-        // Enable caching for faster subsequent builds
-        enableCaching: true,
+      // Parse progress from output
+      const progressMatch = output.match(/(\d+)%/);
+      if (progressMatch) {
+        const progress = parseInt(progressMatch[1]);
+        if (progress !== lastProgress) {
+          lastProgress = progress;
+          console.error(`[Render] Progress: ${progress}%`);
+        }
+      }
+    });
+
+    renderProcess.stderr.on("data", (data) => {
+      const output = data.toString();
+      console.error(`[Render CLI] ${output}`);
+
+      // Parse progress from stderr too
+      const progressMatch = output.match(/(\d+)%/);
+      if (progressMatch) {
+        const progress = parseInt(progressMatch[1]);
+        if (progress !== lastProgress) {
+          lastProgress = progress;
+          console.error(`[Render] Progress: ${progress}%`);
+        }
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      renderProcess.on("close", (code) => {
+        // Clean up props file
+        try {
+          fs.unlinkSync(propsPath);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Render process exited with code ${code}`));
+        }
       });
 
-      // Save to cache for future renders
-      saveBundleCache(bundleLocation);
-      console.error(`[Render] Bundle created at: ${bundleLocation}`);
+      renderProcess.on("error", (err) => {
+        reject(err);
+      });
+    });
+
+    // Verify output file exists
+    if (!fs.existsSync(outputPath)) {
+      throw new Error("Output file was not created");
     }
-
-    // Get composition with extended timeout
-    console.error("[Render] Selecting composition...");
-    const composition = await selectComposition({
-      serveUrl: bundleLocation,
-      id: templateId,
-      inputProps: props,
-      timeoutInMilliseconds: 120000, // 2 minutes timeout for slow systems
-    });
-    console.error(`[Render] Composition selected: ${composition.id}`);
-
-    // Render video with dynamic dimensions
-    // Use concurrency to leverage multiple CPU cores for faster rendering
-    const cpuCount = require("os").cpus().length;
-    const concurrency = Math.max(1, Math.floor(cpuCount * 0.75)); // Use 75% of cores
-    console.error(
-      `[Render] Using ${concurrency} threads (of ${cpuCount} available cores)`
-    );
-    console.error("[Render] Rendering video...");
-    await renderMedia({
-      composition: {
-        ...composition,
-        durationInFrames: duration,
-        width: width || composition.width,
-        height: height || composition.height,
-        fps: fps || composition.fps,
-      },
-      serveUrl: bundleLocation,
-      codec: "h264",
-      outputLocation: outputPath,
-      inputProps: props,
-      concurrency,
-      // Encoding optimizations for faster rendering
-      x264Preset: "faster", // Options: ultrafast, superfast, veryfast, faster, fast, medium
-      crf: 23, // Lower = better quality but slower (18-28 is good range, 23 is balanced)
-      // Mute audio if not needed for faster encoding
-      muted: false,
-      // Use faster pixel format
-      pixelFormat: "yuv420p",
-      // Extended timeouts for slow systems
-      timeoutInMilliseconds: 120000, // 2 minutes for browser operations
-      delayRenderTimeoutInMilliseconds: 60000, // 1 minute for delayRender calls
-      onProgress: ({ progress }) => {
-        console.error(`[Render] Progress: ${Math.round(progress * 100)}%`);
-      },
-    });
 
     console.error("[Render] Video rendered successfully!");
     console.log(JSON.stringify({ success: true, outputPath }));

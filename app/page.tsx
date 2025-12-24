@@ -1,195 +1,40 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Player, PlayerRef } from "@remotion/player";
-import { Template1 } from "@/remotion/templates/Template1";
-import { Template2 } from "@/remotion/templates/Template2";
+import { PlayerRef } from "@remotion/player";
 import { Timeline } from "./components/Timeline";
 import { SceneElementSelectorModal } from "./components/SceneElementSelectorModal";
 import { SceneElement } from "./constants/SCENE_ELEMENTS";
+import { Header } from "./components/Header";
+import { LeftPanel } from "./components/LeftPanel";
+import { RightPanel } from "./components/RightPanel";
+import { VideoPreview } from "./components/VideoPreview";
+import { CaptionEditorModal } from "./components/CaptionEditorModal";
 import {
   parseSrt,
   CaptionItem,
   CaptionSettings,
   DEFAULT_CAPTION_SETTINGS,
 } from "@/lib/parseSrt";
-
-const ASPECT_RATIOS = [
-  { id: "9:16", name: "Portrait (9:16)", width: 1080, height: 1920 },
-  { id: "16:9", name: "Landscape (16:9)", width: 1920, height: 1080 },
-  { id: "1:1", name: "Square (1:1)", width: 1080, height: 1080 },
-  { id: "4:5", name: "Instagram (4:5)", width: 1080, height: 1350 },
-];
-
-const FPS_OPTIONS = [
-  { id: 24, name: "24 fps", description: "Cinematic" },
-  { id: 30, name: "30 fps", description: "Standard" },
-  { id: 60, name: "60 fps", description: "Smooth" },
-];
-
-interface CustomClip {
-  id: string;
-  url: string;
-  startFrame: number;
-  endFrame: number;
-  type: "image" | "video";
-  layer: number; // 0 = background (replaces template), 1+ = overlay on top
-}
-
-interface MusicTrack {
-  id: string;
-  url: string;
-  startFrame: number;
-  endFrame: number;
-  volume: number;
-}
-
-// Shared props interface for all templates
-interface TemplateProps {
-  productImages: string[];
-  reviewText: string;
-  reviewAuthor: string;
-  rating: number;
-  customClips?: CustomClip[];
-}
-
-interface TemplateConfig {
-  id: string;
-  name: string;
-  description: string;
-  duration: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: React.FC<any>;
-}
-
-// Scene definition for timeline visualization
-interface SceneDefinition {
-  id: string;
-  name: string;
-  startFrame: number;
-  endFrame: number;
-  color: string;
-  elementId?: string; // Links to SCENE_ELEMENTS.id for dynamic rendering
-}
-
-const DEFAULT_SCENES: Record<string, SceneDefinition[]> = {
-  template1: [
-    {
-      id: "t1-s1",
-      name: "Intro",
-      startFrame: 0,
-      endFrame: 90,
-      color: "linear-gradient(90deg, #3b82f6, #6366f1)",
-    },
-    {
-      id: "t1-s2",
-      name: "Context",
-      startFrame: 90,
-      endFrame: 210,
-      color: "linear-gradient(90deg, #6366f1, #8b5cf6)",
-    },
-    {
-      id: "t1-s3",
-      name: "Promise",
-      startFrame: 210,
-      endFrame: 420,
-      color: "linear-gradient(90deg, #8b5cf6, #a855f7)",
-    },
-    {
-      id: "t1-s4",
-      name: "Phone Reveal",
-      startFrame: 420,
-      endFrame: 540,
-      color: "linear-gradient(90deg, #a855f7, #d946ef)",
-    },
-    {
-      id: "t1-s5",
-      name: "WhatsApp CTA",
-      startFrame: 540,
-      endFrame: 650,
-      color: "linear-gradient(90deg, #d946ef, #ec4899)",
-    },
-    {
-      id: "t1-s6",
-      name: "Outro",
-      startFrame: 650,
-      endFrame: 750,
-      color: "linear-gradient(90deg, #ec4899, #f43f5e)",
-    },
-  ],
-  template2: [
-    {
-      id: "t2-s1",
-      name: "Greeting",
-      startFrame: 0,
-      endFrame: 90,
-      color: "linear-gradient(90deg, #10b981, #14b8a6)",
-    },
-    {
-      id: "t2-s2",
-      name: "Credit Card",
-      startFrame: 90,
-      endFrame: 240,
-      color: "linear-gradient(90deg, #14b8a6, #06b6d4)",
-    },
-    {
-      id: "t2-s3",
-      name: "Spending",
-      startFrame: 240,
-      endFrame: 480,
-      color: "linear-gradient(90deg, #06b6d4, #0ea5e9)",
-    },
-    {
-      id: "t2-s4",
-      name: "Merchants",
-      startFrame: 480,
-      endFrame: 630,
-      color: "linear-gradient(90deg, #0ea5e9, #3b82f6)",
-    },
-    {
-      id: "t2-s5",
-      name: "EMI Card",
-      startFrame: 630,
-      endFrame: 780,
-      color: "linear-gradient(90deg, #3b82f6, #6366f1)",
-    },
-    {
-      id: "t2-s6",
-      name: "Presenter",
-      startFrame: 780,
-      endFrame: 930,
-      color: "linear-gradient(90deg, #6366f1, #8b5cf6)",
-    },
-    {
-      id: "t2-s7",
-      name: "Closing CTA",
-      startFrame: 930,
-      endFrame: 1050,
-      color: "linear-gradient(90deg, #8b5cf6, #a855f7)",
-    },
-  ],
-};
-
-const templates: TemplateConfig[] = [
-  {
-    id: "template1",
-    name: "WhatsApp Pre-Launch",
-    description: "Personalized video with phone tease & WhatsApp CTA.",
-    duration: 750,
-    component: Template1,
-  },
-  {
-    id: "template2",
-    name: "Financial Services",
-    description:
-      "Credit card with spending analytics, merchant breakdown & EMI options.",
-    duration: 1050,
-    component: Template2,
-  },
-];
+import {
+  CustomClip,
+  MusicTrack,
+  SceneDefinition,
+  AspectRatio,
+  FpsOption,
+  TemplateConfig,
+} from "@/app/types";
+import {
+  ASPECT_RATIOS,
+  FPS_OPTIONS,
+  DEFAULT_SCENES,
+  templates,
+} from "@/app/constants/editorConfig";
 
 export default function Home() {
-  const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateConfig>(
+    templates[0]
+  );
   const [productImages, setProductImages] = useState([
     "https://placehold.co/400",
   ]);
@@ -199,19 +44,19 @@ export default function Home() {
   const [reviewAuthor, setReviewAuthor] = useState("John Doe");
   const [rating, setRating] = useState(5);
   const [customClips, setCustomClips] = useState<CustomClip[]>([]);
-  // Template4 specific props
+  // Template1 specific props
   const [recipientName, setRecipientName] = useState("Mayank");
   const [phoneName, setPhoneName] = useState("Vivo X300");
   const [presenterVideoUrl, setPresenterVideoUrl] = useState("");
   const [productImageUrl, setProductImageUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
-  // Caption settings for Template4
+  // Caption settings
   const [captions, setCaptions] = useState<CaptionItem[]>([]);
   const [captionSettings, setCaptionSettings] = useState<CaptionSettings>(
     DEFAULT_CAPTION_SETTINGS
   );
   const [usePhoneTease, setUsePhoneTease] = useState(true);
-  // Template5 specific props
+  // Template2 specific props
   const [t5UserName, setT5UserName] = useState("Jayant Bhakhri");
   const [t5CardNumber, setT5CardNumber] = useState("•••• •••• •••• 6959");
   const [t5LimitUtilised, setT5LimitUtilised] = useState(49);
@@ -223,8 +68,8 @@ export default function Home() {
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   // Scene timings (editable)
   const [scenes, setScenes] = useState<SceneDefinition[]>([]);
-  const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]);
-  const [fps, setFps] = useState(FPS_OPTIONS[1]); // Default to 30 fps
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(ASPECT_RATIOS[0]);
+  const [fps, setFps] = useState<FpsOption>(FPS_OPTIONS[1]); // Default to 30 fps
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -455,33 +300,6 @@ export default function Home() {
     }
   };
 
-  // Update individual caption timing
-  const updateCaptionTiming = (
-    id: string,
-    startFrame: number,
-    endFrame: number
-  ) => {
-    setCaptions((prev) =>
-      prev.map((caption) =>
-        caption.id === id ? { ...caption, startFrame, endFrame } : caption
-      )
-    );
-  };
-
-  // Update caption text
-  const updateCaptionText = (id: string, text: string) => {
-    setCaptions((prev) =>
-      prev.map((caption) =>
-        caption.id === id ? { ...caption, text } : caption
-      )
-    );
-  };
-
-  // Remove caption
-  const removeCaption = (id: string) => {
-    setCaptions((prev) => prev.filter((caption) => caption.id !== id));
-  };
-
   const handleExport = async () => {
     setIsExporting(true);
     setExportProgress(0);
@@ -502,7 +320,7 @@ export default function Home() {
           height: aspectRatio.height,
           fps: fps.id,
           props:
-            selectedTemplate.id === "template4"
+            selectedTemplate.id === "template1"
               ? {
                   recipientName,
                   phoneName,
@@ -514,8 +332,9 @@ export default function Home() {
                   captions,
                   captionSettings,
                   usePhoneTease,
+                  sceneTimings: scenes,
                 }
-              : selectedTemplate.id === "template5"
+              : selectedTemplate.id === "template2"
               ? {
                   recipientName,
                   presenterVideoUrl,
@@ -531,6 +350,7 @@ export default function Home() {
                   availableLimit: t5AvailableLimit,
                   brandText: t5BrandText,
                   ctaText: t5CtaText,
+                  sceneTimings: scenes,
                 }
               : {
                   productImages,
@@ -598,929 +418,158 @@ export default function Home() {
     }
   };
 
+  // Build input props based on selected template
+  const getInputProps = (): Record<string, unknown> => {
+    if (selectedTemplate.id === "template1") {
+      return {
+        recipientName,
+        phoneName,
+        presenterVideoUrl,
+        productImageUrl,
+        logoUrl,
+        customClips,
+        musicTracks,
+        captions,
+        captionSettings,
+        usePhoneTease,
+        sceneTimings: scenes,
+      };
+    } else if (selectedTemplate.id === "template2") {
+      return {
+        recipientName,
+        presenterVideoUrl,
+        logoUrl,
+        musicTracks,
+        customClips,
+        captions,
+        captionSettings,
+        userName: t5UserName,
+        cardNumber: t5CardNumber,
+        limitUtilised: t5LimitUtilised,
+        totalLimit: t5TotalLimit,
+        availableLimit: t5AvailableLimit,
+        brandText: t5BrandText,
+        ctaText: t5CtaText,
+        sceneTimings: scenes,
+      };
+    }
+    return {
+      productImages,
+      reviewText,
+      reviewAuthor,
+      rating,
+      customClips,
+      musicTracks,
+    };
+  };
+
   return (
     <div className="h-screen flex flex-col bg-slate-950 text-slate-50 overflow-hidden">
       {/* Top Toolbar */}
-      <header className="flex-shrink-0 h-12 border-b border-slate-800 bg-slate-900/90 backdrop-blur flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-500">
-            <span className="text-[10px] font-bold">FC</span>
-          </div>
-          <span className="text-sm font-medium">FlowCut Studio</span>
-          <span className="text-xs text-slate-500 hidden sm:inline">|</span>
-          <span className="text-xs text-slate-400 hidden sm:inline">
-            {selectedTemplate.name}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-2 mr-4">
-            <select
-              value={aspectRatio.id}
-              onChange={(e) =>
-                setAspectRatio(
-                  ASPECT_RATIOS.find((r) => r.id === e.target.value) ||
-                    ASPECT_RATIOS[0]
-                )
-              }
-              className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs"
-            >
-              {ASPECT_RATIOS.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.id}
-                </option>
-              ))}
-            </select>
-            <select
-              value={fps.id}
-              onChange={(e) =>
-                setFps(
-                  FPS_OPTIONS.find((f) => f.id === Number(e.target.value)) ||
-                    FPS_OPTIONS[1]
-                )
-              }
-              className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs"
-            >
-              {FPS_OPTIONS.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.id} fps
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={isExporting}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-medium transition ${
-              isExporting
-                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-500 to-violet-500 text-white hover:brightness-110"
-            }`}
-          >
-            {isExporting ? (
-              <>
-                <svg
-                  className="h-3 w-3 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                {exportProgress}%
-              </>
-            ) : (
-              <>
-                <svg
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                Export
-              </>
-            )}
-          </button>
-        </div>
-      </header>
-
-      {isExporting && (
-        <div className="h-1 bg-slate-800">
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all"
-            style={{ width: `${exportProgress}%` }}
-          />
-        </div>
-      )}
+      <Header
+        selectedTemplate={selectedTemplate}
+        aspectRatio={aspectRatio}
+        setAspectRatio={setAspectRatio}
+        fps={fps}
+        setFps={setFps}
+        isExporting={isExporting}
+        exportProgress={exportProgress}
+        onExport={handleExport}
+      />
 
       {/* Main Editor Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Templates & Media */}
-        <aside className="w-72 flex-shrink-0 border-r border-slate-800 bg-slate-900/50 flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-slate-800">
-            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-              Templates
-            </h3>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {templates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => setSelectedTemplate(template)}
-                className={`w-full rounded-lg p-2.5 text-left text-xs transition ${
-                  selectedTemplate.id === template.id
-                    ? "bg-blue-500/20 border border-blue-500/50"
-                    : "bg-slate-800/50 border border-transparent hover:bg-slate-800"
-                }`}
-              >
-                <div className="font-medium text-slate-100">
-                  {template.name}
-                </div>
-                <p className="mt-0.5 text-[10px] text-slate-400 leading-tight">
-                  {template.description}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          {/* Media Section */}
-          {selectedTemplate.id !== "template4" && (
-            <div className="border-t border-slate-800">
-              <div className="p-3 border-b border-slate-800">
-                <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-                  Media
-                </h3>
-              </div>
-              <div className="p-2">
-                <label className="block">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-3 cursor-pointer hover:border-slate-600">
-                    <span className="text-[10px] text-slate-400">
-                      + Add Images
-                    </span>
-                  </div>
-                </label>
-                {productImages.length > 0 && (
-                  <div className="mt-2 grid grid-cols-3 gap-1">
-                    {productImages.map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt=""
-                        className="h-12 w-full rounded object-cover"
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Custom Clips */}
-          <div className="border-t border-slate-800">
-            <div className="p-3 border-b border-slate-800">
-              <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-                Custom Clips
-              </h3>
-            </div>
-            <div className="p-2">
-              <label className="block">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleCustomClipUpload}
-                  className="hidden"
-                />
-                <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-3 cursor-pointer hover:border-slate-600">
-                  <span className="text-[10px] text-slate-400">
-                    + Add Clips
-                  </span>
-                </div>
-              </label>
-              {customClips.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {customClips.map((clip, i) => (
-                    <div
-                      key={clip.id}
-                      className="flex items-center justify-between rounded bg-slate-800/50 px-2 py-1.5"
-                    >
-                      <span className="text-[10px] text-slate-300">
-                        Clip {i + 1}
-                      </span>
-                      <button
-                        onClick={() => removeClip(clip.id)}
-                        className="text-[10px] text-red-400"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
+        <LeftPanel
+          selectedTemplate={selectedTemplate}
+          setSelectedTemplate={setSelectedTemplate}
+          productImages={productImages}
+          customClips={customClips}
+          onImageUpload={handleImageUpload}
+          onCustomClipUpload={handleCustomClipUpload}
+          onRemoveClip={removeClip}
+        />
 
         {/* Center - Preview */}
-        <main className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 min-w-0">
-          <div
-            ref={playerContainerRef}
-            className="relative rounded-xl overflow-hidden border border-slate-800 bg-black shadow-2xl"
-            style={{
-              width:
-                aspectRatio.id === "16:9"
-                  ? "100%"
-                  : aspectRatio.id === "1:1"
-                  ? "min(100%, 400px)"
-                  : "min(100%, 320px)",
-              maxWidth: "100%",
-              aspectRatio: `${aspectRatio.width} / ${aspectRatio.height}`,
-            }}
-          >
-            {isMounted ? (
-              <Player
-                ref={playerRef}
-                component={
-                  selectedTemplate.component as unknown as React.FC<
-                    Record<string, unknown>
-                  >
-                }
-                durationInFrames={selectedTemplate.duration}
-                compositionWidth={aspectRatio.width}
-                compositionHeight={aspectRatio.height}
-                acknowledgeRemotionLicense
-                fps={fps.id}
-                inputProps={
-                  selectedTemplate.id === "template1"
-                    ? {
-                        recipientName,
-                        phoneName,
-                        presenterVideoUrl,
-                        productImageUrl,
-                        logoUrl,
-                        customClips,
-                        musicTracks,
-                        captions,
-                        captionSettings,
-                        usePhoneTease,
-                        sceneTimings: scenes,
-                      }
-                    : selectedTemplate.id === "template2"
-                    ? {
-                        recipientName,
-                        presenterVideoUrl,
-                        logoUrl,
-                        musicTracks,
-                        customClips,
-                        captions,
-                        captionSettings,
-                        userName: t5UserName,
-                        cardNumber: t5CardNumber,
-                        limitUtilised: t5LimitUtilised,
-                        totalLimit: t5TotalLimit,
-                        availableLimit: t5AvailableLimit,
-                        brandText: t5BrandText,
-                        ctaText: t5CtaText,
-                        sceneTimings: scenes,
-                      }
-                    : {
-                        productImages,
-                        reviewText,
-                        reviewAuthor,
-                        rating,
-                        customClips,
-                        musicTracks,
-                      }
-                }
-                style={{ width: "100%", height: "100%" }}
-                controls
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-500">
-                Loading...
-              </div>
-            )}
-          </div>
-          {/* <div className="mt-3 text-center text-xs text-slate-500">
-            {selectedTemplate.name} •{" "}
-            {(selectedTemplate.duration / fps.id).toFixed(1)}s
-          </div> */}
-        </main>
+        <VideoPreview
+          playerRef={playerRef}
+          playerContainerRef={playerContainerRef}
+          isMounted={isMounted}
+          selectedTemplate={selectedTemplate}
+          aspectRatio={aspectRatio}
+          fps={fps.id}
+          inputProps={getInputProps()}
+        />
 
         {/* Right Panel - Properties */}
-        <aside className="w-72 flex-shrink-0 border-l border-slate-800 bg-slate-900/50 flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-slate-800">
-            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-              Properties
-            </h3>
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            {selectedTemplate.id === "template4" ? (
-              <>
-                {/* Template4 Properties */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Recipient Name
-                  </label>
-                  <input
-                    type="text"
-                    value={recipientName}
-                    onChange={(e) => setRecipientName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:border-blue-500 outline-none"
-                    placeholder="e.g. Mayank"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Phone Name
-                  </label>
-                  <input
-                    type="text"
-                    value={phoneName}
-                    onChange={(e) => setPhoneName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:border-blue-500 outline-none"
-                    placeholder="e.g. Vivo X300"
-                  />
-                </div>
-
-                {/* Presenter Video */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Presenter Video
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handlePresenterVideoUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {presenterVideoUrl ? "✓ Video loaded" : "+ Upload video"}
-                    </div>
-                  </label>
-                  {presenterVideoUrl && (
-                    <button
-                      onClick={() => setPresenterVideoUrl("")}
-                      className="mt-1 text-[10px] text-red-400"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                {/* Product Image */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Product Image
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProductImageUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {productImageUrl ? "✓ Image loaded" : "+ Upload image"}
-                    </div>
-                  </label>
-                </div>
-
-                {/* Logo */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Brand Logo
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {logoUrl ? "✓ Logo loaded" : "+ Upload logo"}
-                    </div>
-                  </label>
-                </div>
-
-                {/* PhoneTease Toggle */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={usePhoneTease}
-                    onChange={(e) => setUsePhoneTease(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-800"
-                  />
-                  <span className="text-xs text-slate-300">
-                    Use PhoneTease animation
-                  </span>
-                </label>
-
-                {/* Captions Section */}
-                <div className="border-t border-slate-800 pt-3">
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    📝 Captions (SRT)
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept=".srt"
-                      onChange={handleSrtUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {captions.length > 0
-                        ? `${captions.length} captions`
-                        : "+ Upload SRT"}
-                    </div>
-                  </label>
-                  {captions.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[10px] text-slate-500 mb-0.5">
-                            Font
-                          </label>
-                          <select
-                            value={captionSettings.fontFamily}
-                            onChange={(e) =>
-                              setCaptionSettings((s) => ({
-                                ...s,
-                                fontFamily: e.target.value,
-                              }))
-                            }
-                            className="w-full rounded border border-slate-700 bg-slate-800 px-1.5 py-1 text-[10px] text-slate-100"
-                          >
-                            <option value="Inter">Inter</option>
-                            <option value="Arial">Arial</option>
-                            <option value="Georgia">Georgia</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] text-slate-500 mb-0.5">
-                            Position
-                          </label>
-                          <select
-                            value={captionSettings.position}
-                            onChange={(e) =>
-                              setCaptionSettings((s) => ({
-                                ...s,
-                                position: e.target.value as
-                                  | "top"
-                                  | "center"
-                                  | "bottom",
-                              }))
-                            }
-                            className="w-full rounded border border-slate-700 bg-slate-800 px-1.5 py-1 text-[10px] text-slate-100"
-                          >
-                            <option value="bottom">Bottom</option>
-                            <option value="center">Center</option>
-                            <option value="top">Top</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <label className="block text-[10px] text-slate-500 mb-0.5">
-                            Text Color
-                          </label>
-                          <input
-                            type="color"
-                            value={captionSettings.color}
-                            onChange={(e) =>
-                              setCaptionSettings((s) => ({
-                                ...s,
-                                color: e.target.value,
-                              }))
-                            }
-                            className="w-full h-6 rounded border border-slate-700 bg-slate-800 cursor-pointer"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[10px] text-slate-500 mb-0.5">
-                            Background
-                          </label>
-                          <input
-                            type="color"
-                            value={
-                              captionSettings.backgroundColor.startsWith("rgba")
-                                ? "#000000"
-                                : captionSettings.backgroundColor
-                            }
-                            onChange={(e) =>
-                              setCaptionSettings((s) => ({
-                                ...s,
-                                backgroundColor: e.target.value + "cc", // Add some transparency
-                              }))
-                            }
-                            className="w-full h-6 rounded border border-slate-700 bg-slate-800 cursor-pointer"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[10px] text-slate-500 mb-0.5">
-                            Size
-                          </label>
-                          <input
-                            type="number"
-                            min="20"
-                            max="80"
-                            value={captionSettings.fontSize}
-                            onChange={(e) =>
-                              setCaptionSettings((s) => ({
-                                ...s,
-                                fontSize: parseInt(e.target.value) || 44,
-                              }))
-                            }
-                            className="w-full rounded border border-slate-700 bg-slate-800 px-1.5 py-1 text-[10px] text-slate-100"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setCaptionEditorOpen(true)}
-                          className="flex-1 text-[10px] text-blue-400 hover:text-blue-300 bg-slate-800 border border-slate-700 rounded px-2 py-1"
-                        >
-                          ✏️ Edit Captions
-                        </button>
-                        <button
-                          onClick={() => setCaptions([])}
-                          className="text-[10px] text-red-400 hover:text-red-300"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : selectedTemplate.id === "template5" ? (
-              <>
-                {/* Template5 Properties */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Recipient Name
-                  </label>
-                  <input
-                    type="text"
-                    value={recipientName}
-                    onChange={(e) => setRecipientName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:border-blue-500 outline-none"
-                    placeholder="e.g. Jayant"
-                  />
-                </div>
-
-                {/* Presenter Video */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Presenter Video
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handlePresenterVideoUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {presenterVideoUrl ? "✓ Video loaded" : "+ Upload video"}
-                    </div>
-                  </label>
-                  {presenterVideoUrl && (
-                    <button
-                      onClick={() => setPresenterVideoUrl("")}
-                      className="mt-1 text-[10px] text-red-400"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                {/* Logo */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Brand Logo
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {logoUrl ? "✓ Logo loaded" : "+ Upload logo"}
-                    </div>
-                  </label>
-                </div>
-
-                {/* Credit Card Settings */}
-                <div className="border-t border-slate-700 pt-3">
-                  <h4 className="text-[11px] font-medium text-slate-300 mb-2">
-                    Credit Card Settings
-                  </h4>
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">
-                        Cardholder Name
-                      </label>
-                      <input
-                        type="text"
-                        value={t5UserName}
-                        onChange={(e) => setT5UserName(e.target.value)}
-                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">
-                        Card Number (masked)
-                      </label>
-                      <input
-                        type="text"
-                        value={t5CardNumber}
-                        onChange={(e) => setT5CardNumber(e.target.value)}
-                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="block text-[10px] text-slate-500 mb-0.5">
-                          Limit Used (%)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={t5LimitUtilised}
-                          onChange={(e) =>
-                            setT5LimitUtilised(parseInt(e.target.value) || 0)
-                          }
-                          className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-[10px] text-slate-500 mb-0.5">
-                          Total Limit (₹)
-                        </label>
-                        <input
-                          type="number"
-                          value={t5TotalLimit}
-                          onChange={(e) =>
-                            setT5TotalLimit(parseInt(e.target.value) || 0)
-                          }
-                          className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">
-                        Available Limit (₹)
-                      </label>
-                      <input
-                        type="number"
-                        value={t5AvailableLimit}
-                        onChange={(e) =>
-                          setT5AvailableLimit(parseInt(e.target.value) || 0)
-                        }
-                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* CTA Settings */}
-                <div className="border-t border-slate-700 pt-3">
-                  <h4 className="text-[11px] font-medium text-slate-300 mb-2">
-                    Closing CTA
-                  </h4>
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">
-                        Brand Text
-                      </label>
-                      <input
-                        type="text"
-                        value={t5BrandText}
-                        onChange={(e) => setT5BrandText(e.target.value)}
-                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">
-                        CTA Button Text
-                      </label>
-                      <input
-                        type="text"
-                        value={t5CtaText}
-                        onChange={(e) => setT5CtaText(e.target.value)}
-                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Captions */}
-                <div className="border-t border-slate-700 pt-3">
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Captions (SRT)
-                  </label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept=".srt"
-                      onChange={handleSrtUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 p-2.5 cursor-pointer hover:border-slate-600 text-[10px] text-slate-400">
-                      {captions.length > 0
-                        ? `✓ ${captions.length} captions`
-                        : "+ Upload SRT file"}
-                    </div>
-                  </label>
-                  {captions.length > 0 && (
-                    <div className="mt-2 flex gap-2">
-                      <button
-                        onClick={() => setCaptionEditorOpen(true)}
-                        className="flex-1 text-[10px] text-blue-400 hover:text-blue-300 bg-slate-800 border border-slate-700 rounded px-2 py-1"
-                      >
-                        ✏️ Edit Captions
-                      </button>
-                      <button
-                        onClick={() => setCaptions([])}
-                        className="text-[10px] text-red-400 hover:text-red-300"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Other Templates Properties */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Review Text
-                  </label>
-                  <textarea
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:border-blue-500 outline-none"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Author
-                  </label>
-                  <input
-                    type="text"
-                    value={reviewAuthor}
-                    onChange={(e) => setReviewAuthor(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-100 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
-                    Rating: {rating}★
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={rating}
-                    onChange={(e) => setRating(Number(e.target.value))}
-                    className="w-full accent-blue-500"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Scenes Section - Common to all templates */}
-            {scenes.length > 0 && (
-              <div className="border-t border-slate-800 pt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-[11px] font-medium text-slate-300">
-                    🎬 Scenes ({scenes.length})
-                  </h4>
-                  <button
-                    onClick={() => setElementSelectorOpen(true)}
-                    className="text-[9px] text-blue-400 hover:text-blue-300"
-                  >
-                    + Add Scene
-                  </button>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {scenes.map((scene, index) => (
-                    <div
-                      key={scene.id}
-                      className="bg-slate-800/50 border border-slate-700 rounded-lg p-2"
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div
-                          className="w-3 h-3 rounded"
-                          style={{ background: scene.color }}
-                        />
-                        <input
-                          type="text"
-                          value={scene.name}
-                          onChange={(e) =>
-                            updateSceneProperties(scene.id, {
-                              name: e.target.value,
-                            })
-                          }
-                          className="flex-1 bg-transparent border-none text-[10px] text-slate-200 font-medium outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
-                        />
-                        <button
-                          onClick={() => handleSeek(scene.startFrame)}
-                          className="text-[8px] text-slate-400 hover:text-slate-200"
-                          title="Jump to scene"
-                        >
-                          ▶
-                        </button>
-                        <button
-                          onClick={() => removeScene(scene.id)}
-                          className="text-[8px] text-red-400 hover:text-red-300"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <label className="block text-[8px] text-slate-500 mb-0.5">
-                            Start
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={scene.endFrame - fps.id}
-                            value={scene.startFrame}
-                            onChange={(e) =>
-                              updateScene(
-                                scene.id,
-                                parseInt(e.target.value) || 0,
-                                scene.endFrame
-                              )
-                            }
-                            className="w-full rounded border border-slate-600 bg-slate-700 px-1.5 py-0.5 text-[9px] text-slate-100"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[8px] text-slate-500 mb-0.5">
-                            End
-                          </label>
-                          <input
-                            type="number"
-                            min={scene.startFrame + fps.id}
-                            max={selectedTemplate.duration}
-                            value={scene.endFrame}
-                            onChange={(e) =>
-                              updateScene(
-                                scene.id,
-                                scene.startFrame,
-                                parseInt(e.target.value) ||
-                                  scene.startFrame + fps.id
-                              )
-                            }
-                            className="w-full rounded border border-slate-600 bg-slate-700 px-1.5 py-0.5 text-[9px] text-slate-100"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[8px] text-slate-500 mb-0.5">
-                            Duration
-                          </label>
-                          <span className="block text-[9px] text-slate-300 px-1.5 py-0.5">
-                            {(
-                              (scene.endFrame - scene.startFrame) /
-                              fps.id
-                            ).toFixed(1)}
-                            s
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() =>
-                    setScenes(DEFAULT_SCENES[selectedTemplate.id] || [])
-                  }
-                  className="mt-2 text-[9px] text-slate-500 hover:text-slate-400"
-                >
-                  ↺ Reset to defaults
-                </button>
-              </div>
-            )}
-          </div>
-        </aside>
+        <RightPanel
+          selectedTemplate={selectedTemplate}
+          scenes={scenes}
+          setScenes={setScenes}
+          fps={fps}
+          updateScene={updateScene}
+          updateSceneProperties={updateSceneProperties}
+          removeScene={removeScene}
+          handleSeek={handleSeek}
+          onOpenElementSelector={() => setElementSelectorOpen(true)}
+          template1Props={{
+            recipientName,
+            setRecipientName,
+            phoneName,
+            setPhoneName,
+            presenterVideoUrl,
+            setPresenterVideoUrl,
+            productImageUrl,
+            logoUrl,
+            usePhoneTease,
+            setUsePhoneTease,
+            captions,
+            setCaptions,
+            captionSettings,
+            setCaptionSettings,
+            onPresenterVideoUpload: handlePresenterVideoUpload,
+            onProductImageUpload: handleProductImageUpload,
+            onLogoUpload: handleLogoUpload,
+            onSrtUpload: handleSrtUpload,
+            onOpenCaptionEditor: () => setCaptionEditorOpen(true),
+            fps,
+          }}
+          template2Props={{
+            recipientName,
+            setRecipientName,
+            presenterVideoUrl,
+            setPresenterVideoUrl,
+            logoUrl,
+            captions,
+            setCaptions,
+            t5UserName,
+            setT5UserName,
+            t5CardNumber,
+            setT5CardNumber,
+            t5LimitUtilised,
+            setT5LimitUtilised,
+            t5TotalLimit,
+            setT5TotalLimit,
+            t5AvailableLimit,
+            setT5AvailableLimit,
+            t5BrandText,
+            setT5BrandText,
+            t5CtaText,
+            setT5CtaText,
+            onPresenterVideoUpload: handlePresenterVideoUpload,
+            onLogoUpload: handleLogoUpload,
+            onSrtUpload: handleSrtUpload,
+            onOpenCaptionEditor: () => setCaptionEditorOpen(true),
+          }}
+          defaultProps={{
+            reviewText,
+            setReviewText,
+            reviewAuthor,
+            setReviewAuthor,
+            rating,
+            setRating,
+          }}
+        />
       </div>
 
       {/* Bottom Timeline */}
@@ -1544,146 +593,13 @@ export default function Home() {
       </div>
 
       {/* Caption Editor Modal */}
-      {captionEditorOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <h2 className="text-lg font-semibold text-slate-100">
-                ✏️ Edit Captions
-              </h2>
-              <button
-                onClick={() => setCaptionEditorOpen(false)}
-                className="text-slate-400 hover:text-slate-200 text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {captions.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  <p className="mb-4">
-                    No captions yet. Add your first caption below.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {captions.map((caption, index) => (
-                    <div
-                      key={caption.id}
-                      className="bg-slate-800/50 border border-slate-700 rounded-lg p-3"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          #{index + 1}
-                        </span>
-                        <div className="flex-1 flex items-center gap-2">
-                          <label className="text-[10px] text-slate-400">
-                            Start:
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={caption.startFrame}
-                            onChange={(e) => {
-                              const newCaptions = [...captions];
-                              newCaptions[index] = {
-                                ...newCaptions[index],
-                                startFrame: parseInt(e.target.value) || 0,
-                              };
-                              setCaptions(newCaptions);
-                            }}
-                            className="w-20 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[11px] text-slate-100"
-                          />
-                          <span className="text-[10px] text-slate-500">
-                            ({(caption.startFrame / fps.id).toFixed(1)}s)
-                          </span>
-                        </div>
-                        <div className="flex-1 flex items-center gap-2">
-                          <label className="text-[10px] text-slate-400">
-                            End:
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={caption.endFrame}
-                            onChange={(e) => {
-                              const newCaptions = [...captions];
-                              newCaptions[index] = {
-                                ...newCaptions[index],
-                                endFrame: parseInt(e.target.value) || 0,
-                              };
-                              setCaptions(newCaptions);
-                            }}
-                            className="w-20 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[11px] text-slate-100"
-                          />
-                          <span className="text-[10px] text-slate-500">
-                            ({(caption.endFrame / fps.id).toFixed(1)}s)
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCaptions(
-                              captions.filter((c) => c.id !== caption.id)
-                            );
-                          }}
-                          className="text-red-400 hover:text-red-300 text-xs px-2 py-1"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                      <textarea
-                        value={caption.text}
-                        onChange={(e) => {
-                          const newCaptions = [...captions];
-                          newCaptions[index] = {
-                            ...newCaptions[index],
-                            text: e.target.value,
-                          };
-                          setCaptions(newCaptions);
-                        }}
-                        className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1.5 text-xs text-slate-100 resize-none"
-                        rows={2}
-                        placeholder="Caption text..."
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-slate-700">
-              <button
-                onClick={() => {
-                  const lastCaption = captions[captions.length - 1];
-                  const newStartFrame = lastCaption ? lastCaption.endFrame : 0;
-                  const newCaption: CaptionItem = {
-                    id: `caption-${Date.now()}`,
-                    startFrame: newStartFrame,
-                    endFrame: newStartFrame + fps.id * 2, // 2 seconds default
-                    text: "",
-                  };
-                  setCaptions([...captions, newCaption]);
-                }}
-                className="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
-              >
-                + Add Caption
-              </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCaptionEditorOpen(false)}
-                  className="px-4 py-2 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CaptionEditorModal
+        isOpen={captionEditorOpen}
+        onClose={() => setCaptionEditorOpen(false)}
+        captions={captions}
+        setCaptions={setCaptions}
+        fps={fps.id}
+      />
 
       {/* Scene Element Selector Modal */}
       <SceneElementSelectorModal
