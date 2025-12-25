@@ -8,6 +8,7 @@ interface CustomClip {
   startFrame: number;
   endFrame: number;
   type: "image" | "video";
+  layer: number;
 }
 
 interface MusicTrack {
@@ -18,6 +19,15 @@ interface MusicTrack {
   volume: number;
 }
 
+// Scene definition for timeline visualization
+interface SceneDefinition {
+  id: string;
+  name: string;
+  startFrame: number;
+  endFrame: number;
+  color: string;
+}
+
 interface TimelineProps {
   currentFrame: number;
   durationInFrames: number;
@@ -25,6 +35,11 @@ interface TimelineProps {
   customClips: CustomClip[];
   onSeek: (frame: number) => void;
   onClipUpdate: (id: string, startFrame: number, endFrame: number) => void;
+  onClipLayerUpdate?: (id: string, layer: number) => void;
+  onClipRemove?: (id: string) => void;
+  // Scene props
+  scenes?: SceneDefinition[];
+  onSceneUpdate?: (id: string, startFrame: number, endFrame: number) => void;
   // Music props (array of tracks)
   musicTracks?: MusicTrack[];
   onMusicUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -42,6 +57,10 @@ export const Timeline: React.FC<TimelineProps> = ({
   customClips,
   onSeek,
   onClipUpdate,
+  onClipLayerUpdate,
+  onClipRemove,
+  scenes = [],
+  onSceneUpdate,
   musicTracks = [],
   onMusicUpload,
   onMusicTrackUpdate,
@@ -57,6 +76,13 @@ export const Timeline: React.FC<TimelineProps> = ({
     originalEnd: number;
   } | null>(null);
   const [draggingMusic, setDraggingMusic] = useState<{
+    id: string;
+    type: "move" | "resize-start" | "resize-end";
+    startX: number;
+    originalStart: number;
+    originalEnd: number;
+  } | null>(null);
+  const [draggingScene, setDraggingScene] = useState<{
     id: string;
     type: "move" | "resize-start" | "resize-end";
     startX: number;
@@ -263,6 +289,80 @@ export const Timeline: React.FC<TimelineProps> = ({
     };
   }, [draggingMusic, durationInFrames, fps, onMusicTrackUpdate]);
 
+  // Scene drag handling
+  const handleSceneMouseDown = useCallback(
+    (
+      e: React.MouseEvent,
+      scene: SceneDefinition,
+      type: "move" | "resize-start" | "resize-end"
+    ) => {
+      e.stopPropagation();
+      setDraggingScene({
+        id: scene.id,
+        type,
+        startX: e.clientX,
+        originalStart: scene.startFrame,
+        originalEnd: scene.endFrame,
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!draggingScene || !onSceneUpdate) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = timelineRef.current?.getBoundingClientRect();
+      if (!rect || !draggingScene) return;
+
+      const deltaX = e.clientX - draggingScene.startX;
+      const deltaFrames = Math.round((deltaX / rect.width) * durationInFrames);
+
+      let newStart = draggingScene.originalStart;
+      let newEnd = draggingScene.originalEnd;
+
+      if (draggingScene.type === "move") {
+        const sceneDuration =
+          draggingScene.originalEnd - draggingScene.originalStart;
+        newStart = Math.max(0, draggingScene.originalStart + deltaFrames);
+        newEnd = newStart + sceneDuration;
+
+        // Prevent going past end
+        if (newEnd > durationInFrames) {
+          newEnd = durationInFrames;
+          newStart = newEnd - sceneDuration;
+        }
+      } else if (draggingScene.type === "resize-start") {
+        newStart = Math.max(
+          0,
+          Math.min(
+            draggingScene.originalEnd - fps, // Minimum 1 second
+            draggingScene.originalStart + deltaFrames
+          )
+        );
+      } else if (draggingScene.type === "resize-end") {
+        newEnd = Math.max(
+          draggingScene.originalStart + fps, // Minimum 1 second
+          Math.min(durationInFrames, draggingScene.originalEnd + deltaFrames)
+        );
+      }
+
+      onSceneUpdate(draggingScene.id, newStart, newEnd);
+    };
+
+    const handleMouseUp = () => {
+      setDraggingScene(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [draggingScene, durationInFrames, fps, onSceneUpdate]);
+
   return (
     <div className="rounded-2xl relative border border-slate-800 bg-slate-900/70 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -298,6 +398,99 @@ export const Timeline: React.FC<TimelineProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Scene Track - Shows template scenes */}
+      {scenes.length > 0 && (
+        <div className="mb-1 relative">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] text-slate-500">
+              🎬 Scenes ({scenes.length})
+            </span>
+          </div>
+          <div
+            className="relative rounded-lg bg-slate-950/80 border border-slate-800 overflow-hidden"
+            style={{ height: "28px" }}
+          >
+            {scenes.map((scene) => {
+              const left = (scene.startFrame / durationInFrames) * 100;
+              const width =
+                ((scene.endFrame - scene.startFrame) / durationInFrames) * 100;
+              const isActive =
+                currentFrame >= scene.startFrame &&
+                currentFrame < scene.endFrame;
+              const isDragging = draggingScene?.id === scene.id;
+
+              return (
+                <div
+                  key={scene.id}
+                  className={`absolute top-0.5 bottom-0.5 rounded-md transition-all ${
+                    isDragging
+                      ? "ring-2 ring-white/70 brightness-125"
+                      : isActive
+                      ? "ring-1 ring-white/50 brightness-110"
+                      : "hover:brightness-105"
+                  }`}
+                  style={{
+                    left: `${left}%`,
+                    width: `${width}%`,
+                    minWidth: "50px",
+                    background: scene.color,
+                  }}
+                  title={`${scene.name} (${scene.startFrame}-${scene.endFrame}) - Drag to move, edges to resize`}
+                >
+                  {/* Resize Handle - Start */}
+                  {onSceneUpdate && (
+                    <div
+                      className="absolute left-0 top-0 h-full w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 transition rounded-l-md z-10"
+                      onMouseDown={(e) =>
+                        handleSceneMouseDown(e, scene, "resize-start")
+                      }
+                    />
+                  )}
+
+                  {/* Move Handle - Middle (clickable to seek) */}
+                  <div
+                    className={`absolute inset-x-2 inset-y-0 flex items-center justify-center overflow-hidden px-1 ${
+                      onSceneUpdate ? "cursor-grab" : "cursor-pointer"
+                    }`}
+                    onMouseDown={(e) => {
+                      if (onSceneUpdate) {
+                        handleSceneMouseDown(e, scene, "move");
+                      }
+                    }}
+                    onClick={(e) => {
+                      if (!draggingScene) {
+                        e.stopPropagation();
+                        onSeek(scene.startFrame);
+                      }
+                    }}
+                  >
+                    <span className="text-[9px] font-medium text-white/90 truncate drop-shadow-sm">
+                      {scene.name}
+                    </span>
+                  </div>
+
+                  {/* Resize Handle - End */}
+                  {onSceneUpdate && (
+                    <div
+                      className="absolute right-0 top-0 h-full w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 transition rounded-r-md z-10"
+                      onMouseDown={(e) =>
+                        handleSceneMouseDown(e, scene, "resize-end")
+                      }
+                    />
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Playhead on scene track */}
+            <div
+              className="absolute top-0 h-full w-0.5 bg-blue-400/70 pointer-events-none z-10"
+              style={{ left: `${playheadPosition}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Music Tracks - Above Main Timeline */}
       <div className="mb-1 relative">
@@ -477,13 +670,17 @@ export const Timeline: React.FC<TimelineProps> = ({
               key={clip.id}
               className={`absolute top-2 h-12 rounded-lg transition-all ${
                 isActive
-                  ? "bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30"
+                  ? clip.layer === 0
+                    ? "bg-gradient-to-r from-amber-500 to-orange-600 shadow-lg shadow-amber-500/30"
+                    : "bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30"
+                  : clip.layer === 0
+                  ? "bg-gradient-to-r from-amber-500/60 to-orange-600/60"
                   : "bg-gradient-to-r from-violet-500/60 to-purple-600/60"
               } ${draggingClip?.id === clip.id ? "ring-2 ring-white/50" : ""}`}
               style={{
                 left: `${left}%`,
                 width: `${width}%`,
-                minWidth: "40px",
+                minWidth: "80px",
               }}
             >
               {/* Resize Handle - Start */}
@@ -496,16 +693,56 @@ export const Timeline: React.FC<TimelineProps> = ({
 
               {/* Move Handle - Middle */}
               <div
-                className="absolute inset-x-2 inset-y-0 cursor-grab flex items-center justify-center"
+                className="absolute inset-x-2 inset-y-0 cursor-grab flex items-center justify-between px-1"
                 onMouseDown={(e) => handleClipMouseDown(e, clip, "move")}
               >
-                <div className="flex items-center gap-1.5 px-2">
-                  <span className="text-[10px] font-medium text-white/90 truncate">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-medium text-white/90">
                     {clip.type === "video" ? "🎥" : "🖼️"}
                   </span>
-                  <span className="text-[10px] font-medium text-white/80 truncate">
+                  <span className="text-[9px] px-1 py-0.5 rounded bg-white/20 text-white/80">
+                    {clip.layer === 0 ? "BG" : "OV"}
+                  </span>
+                  <span className="text-[9px] text-white/70">
                     {((clip.endFrame - clip.startFrame) / fps).toFixed(1)}s
                   </span>
+                </div>
+
+                <div
+                  className="flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Layer toggle */}
+                  {onClipLayerUpdate && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClipLayerUpdate(clip.id, clip.layer === 0 ? 1 : 0);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="text-[8px] px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/40 text-white/80"
+                      title={
+                        clip.layer === 0
+                          ? "Move to overlay"
+                          : "Move to background"
+                      }
+                    >
+                      {clip.layer === 0 ? "↑" : "↓"}
+                    </button>
+                  )}
+                  {/* Remove button */}
+                  {onClipRemove && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClipRemove(clip.id);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="text-[8px] text-red-300 hover:text-red-200"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
 
