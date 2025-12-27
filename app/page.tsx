@@ -306,108 +306,140 @@ export default function Home() {
 
     try {
       setExportProgress(5);
-      console.log("Starting export...");
+      console.log("Starting export via job queue...");
 
-      const response = await fetch("/api/render", {
+      // Build props based on template
+      const props =
+        selectedTemplate.id === "template1"
+          ? {
+              recipientName,
+              phoneName,
+              presenterVideoUrl,
+              productImageUrl,
+              logoUrl,
+              customClips,
+              musicTracks,
+              captions,
+              captionSettings,
+              usePhoneTease,
+              sceneTimings: scenes,
+            }
+          : selectedTemplate.id === "template2"
+          ? {
+              recipientName,
+              presenterVideoUrl,
+              logoUrl,
+              musicTracks,
+              customClips,
+              captions,
+              captionSettings,
+              userName: t5UserName,
+              cardNumber: t5CardNumber,
+              limitUtilised: t5LimitUtilised,
+              totalLimit: t5TotalLimit,
+              availableLimit: t5AvailableLimit,
+              brandText: t5BrandText,
+              ctaText: t5CtaText,
+              sceneTimings: scenes,
+            }
+          : {
+              productImages,
+              reviewText,
+              reviewAuthor,
+              rating,
+              customClips,
+              musicTracks,
+            };
+
+      // Create render job
+      const createResponse = await fetch("/api/jobs", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateId: selectedTemplate.id,
           duration: selectedTemplate.duration,
           width: aspectRatio.width,
           height: aspectRatio.height,
           fps: fps.id,
-          props:
-            selectedTemplate.id === "template1"
-              ? {
-                  recipientName,
-                  phoneName,
-                  presenterVideoUrl,
-                  productImageUrl,
-                  logoUrl,
-                  customClips,
-                  musicTracks,
-                  captions,
-                  captionSettings,
-                  usePhoneTease,
-                  sceneTimings: scenes,
-                }
-              : selectedTemplate.id === "template2"
-              ? {
-                  recipientName,
-                  presenterVideoUrl,
-                  logoUrl,
-                  musicTracks,
-                  customClips,
-                  captions,
-                  captionSettings,
-                  userName: t5UserName,
-                  cardNumber: t5CardNumber,
-                  limitUtilised: t5LimitUtilised,
-                  totalLimit: t5TotalLimit,
-                  availableLimit: t5AvailableLimit,
-                  brandText: t5BrandText,
-                  ctaText: t5CtaText,
-                  sceneTimings: scenes,
-                }
-              : {
-                  productImages,
-                  reviewText,
-                  reviewAuthor,
-                  rating,
-                  customClips,
-                  musicTracks,
-                },
+          props,
         }),
       });
 
-      const contentType = response.headers.get("content-type");
-      console.log(
-        "Response status:",
-        response.status,
-        "Content-type:",
-        contentType
-      );
-
-      if (!response.ok) {
-        let errorMessage = `Server error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // Response wasn't JSON
-        }
-        throw new Error(errorMessage);
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        throw new Error(errorData.error || "Failed to create render job");
       }
 
-      if (contentType?.includes("video/mp4")) {
-        setExportProgress(90);
-        const blob = await response.blob();
+      const { jobId } = await createResponse.json();
+      console.log("Created render job:", jobId);
+      setExportProgress(10);
 
-        if (blob.size === 0) {
-          throw new Error("Received empty video file");
+      // Poll for job completion
+      const pollInterval = 2000; // 2 seconds
+      const maxPolls = 300; // 10 minutes max (300 * 2s)
+      let pollCount = 0;
+
+      while (pollCount < maxPolls) {
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        pollCount++;
+
+        const statusResponse = await fetch(`/api/jobs/${jobId}`);
+        if (!statusResponse.ok) {
+          throw new Error("Failed to check job status");
         }
 
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `flowcut-video-${Date.now()}.mp4`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        const job = await statusResponse.json();
+        console.log("Job status:", job.status);
 
-        setExportProgress(100);
-        setTimeout(() => {
-          setIsExporting(false);
-          setExportProgress(0);
-        }, 2000);
-      } else {
-        const data = await response.json();
-        throw new Error(data.error || "Server returned unexpected response");
+        // Update progress based on status
+        if (job.status === "processing") {
+          // Gradually increase progress while processing (10-80%)
+          const progressIncrement = Math.min(80, 10 + pollCount * 2);
+          setExportProgress(progressIncrement);
+        }
+
+        if (job.status === "complete") {
+          setExportProgress(90);
+          console.log("Job complete, downloading from:", job.downloadUrl);
+
+          if (job.downloadUrl) {
+            // Download from presigned URL
+            const downloadResponse = await fetch(job.downloadUrl);
+            if (!downloadResponse.ok) {
+              throw new Error("Failed to download video");
+            }
+
+            const blob = await downloadResponse.blob();
+            if (blob.size === 0) {
+              throw new Error("Received empty video file");
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `flowcut-video-${Date.now()}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            setExportProgress(100);
+            setTimeout(() => {
+              setIsExporting(false);
+              setExportProgress(0);
+            }, 2000);
+            return;
+          } else {
+            throw new Error("No download URL available");
+          }
+        }
+
+        if (job.status === "failed") {
+          throw new Error(job.error || "Render job failed");
+        }
       }
+
+      throw new Error("Render timed out after 10 minutes");
     } catch (error) {
       console.error("Export error:", error);
       const errorMessage =

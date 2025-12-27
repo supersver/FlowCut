@@ -65,15 +65,15 @@ async function render() {
     // Use Remotion CLI for rendering - more stable than programmatic API
     const entryPoint = path.join(process.cwd(), "remotion", "Root.tsx");
 
-    // Build the CLI command
+    // Build the CLI command - wrap paths with spaces in quotes
     const args = [
       "remotion",
       "render",
-      entryPoint,
+      `"${entryPoint}"`,
       templateId,
-      outputPath,
+      `"${outputPath}"`,
       "--props",
-      propsPath,
+      `"${propsPath}"`,
       "--width",
       String(width || 1080),
       "--height",
